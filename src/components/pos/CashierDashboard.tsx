@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { mockProducts, mockCustomers, Product, Customer } from '@/data/mockData';
+import { useInventory } from '@/hooks/useInventory';
 import { 
   Search, 
   ShoppingCart, 
@@ -30,8 +31,10 @@ export function CashierDashboard() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [showCustomerSearch, setShowCustomerSearch] = useState(false);
+  
+  const { products, updateProduct } = useInventory(mockProducts);
 
-  const filteredProducts = mockProducts.filter(product =>
+  const filteredProducts = products.filter(product =>
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     product.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
     product.category.toLowerCase().includes(searchTerm.toLowerCase())
@@ -74,7 +77,7 @@ export function CashierDashboard() {
   const tax = subtotal * 0.08;
   const total = subtotal + tax;
 
-  const handleCheckout = (paymentMethod: string) => {
+  const handleCheckout = async (paymentMethod: string) => {
     if (cart.length === 0) {
       toast({
         title: "Empty cart",
@@ -84,14 +87,39 @@ export function CashierDashboard() {
       return;
     }
 
-    // Simulate checkout
-    toast({
-      title: "Sale completed!",
-      description: `Payment of $${total.toFixed(2)} processed via ${paymentMethod}`,
-    });
-    
-    setCart([]);
-    setSelectedCustomer(null);
+    try {
+      // Update stock levels for each item in cart
+      for (const item of cart) {
+        const product = products.find(p => p.id === item.product.id);
+        if (product && product.stock >= item.quantity) {
+          await updateProduct(product.id, {
+            stock: product.stock - item.quantity
+          });
+        } else {
+          toast({
+            title: "Insufficient Stock",
+            description: `Not enough stock for ${item.product.name}`,
+            variant: "destructive"
+          });
+          return;
+        }
+      }
+
+      // Simulate checkout
+      toast({
+        title: "Sale completed!",
+        description: `Payment of $${total.toFixed(2)} processed via ${paymentMethod}`,
+      });
+      
+      setCart([]);
+      setSelectedCustomer(null);
+    } catch (error) {
+      toast({
+        title: "Checkout Error",
+        description: "Failed to complete the sale",
+        variant: "destructive"
+      });
+    }
   };
 
   return (

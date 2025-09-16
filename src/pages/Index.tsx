@@ -1,11 +1,44 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from 'react';
+import { LoginScreen } from '@/components/pos/LoginScreen';
+import { POSHeader } from '@/components/pos/POSHeader';
+import { CashierDashboard } from '@/components/pos/CashierDashboard';
+import { ManagerDashboard } from '@/components/pos/ManagerDashboard';
+import { OwnerDashboard } from '@/components/pos/OwnerDashboard';
+import { User } from '@/data/mockData';
 
 const Index = () => {
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+
+  const handleLogin = (user: User) => {
+    setCurrentUser(user);
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+  };
+
+  if (!currentUser) {
+    return <LoginScreen onLogin={handleLogin} />;
+  }
+
+  const renderDashboard = () => {
+    switch (currentUser.role) {
+      case 'cashier':
+        return <CashierDashboard />;
+      case 'manager':
+        return <ManagerDashboard />;
+      case 'owner':
+        return <OwnerDashboard />;
+      default:
+        return <CashierDashboard />;
+    }
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
+    <div className="min-h-screen bg-background flex flex-col">
+      <POSHeader user={currentUser} onLogout={handleLogout} />
+      <div className="flex-1">
+        {renderDashboard()}
       </div>
     </div>
   );

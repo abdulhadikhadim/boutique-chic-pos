@@ -459,9 +459,8 @@ export function ManagerDashboard() {
 
       {/* Main Content */}
       <Tabs defaultValue="inventory" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="inventory">Inventory</TabsTrigger>
-          <TabsTrigger value="manage-inventory">Manage Inventory</TabsTrigger>
           <TabsTrigger value="sales">Sales</TabsTrigger>
           <TabsTrigger value="customers">Customers</TabsTrigger>
           <TabsTrigger value="reports">Reports</TabsTrigger>

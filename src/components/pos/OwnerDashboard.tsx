@@ -5,9 +5,6 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { mockProducts, mockSales, mockCustomers } from '@/data/mockData';
-import { InventoryManagement } from './InventoryManagement';
-import { useInventory } from '@/hooks/useInventory';
-import InventoryService from '@/services/inventoryService';
 import { 
   TrendingUp, 
   TrendingDown,
@@ -28,33 +25,13 @@ import {
 export function OwnerDashboard() {
   const [selectedPeriod, setSelectedPeriod] = useState('month');
   const [selectedStore, setSelectedStore] = useState('main');
-  
-  const { 
-    products, 
-    addProduct, 
-    updateProduct, 
-    deleteProduct, 
-    exportProducts, 
-    importProducts,
-    stats 
-  } = useInventory(mockProducts);
 
   // Calculate advanced metrics
   const totalRevenue = mockSales.reduce((sum, sale) => sum + sale.total, 0);
-  const totalProfit = stats.potentialProfit;
+  const totalProfit = mockProducts.reduce((sum, product) => sum + ((product.price - product.cost) * (20 - product.stock)), 0);
   const avgOrderValue = totalRevenue / mockSales.length;
   const customerRetention = 85.4; // Mock percentage
-  const inventoryValue = stats.totalValue;
-  
-  const handleUpdateProducts = (updatedProducts: any[]) => {
-    // This will be handled by the inventory hook
-    console.log('Products updated:', updatedProducts.length);
-  };
-  
-  const lowStockProducts = InventoryService.getLowStockProducts(products);
-  const outOfStockProducts = InventoryService.getOutOfStockProducts(products);
-  const topSellingProducts = InventoryService.getTopSellingProducts(products);
-  const categoryBreakdown = InventoryService.getProductsByCategory(products);
+  const inventoryValue = mockProducts.reduce((sum, product) => sum + (product.cost * product.stock), 0);
 
   return (
     <div className="p-6 space-y-6 overflow-auto">
@@ -172,10 +149,9 @@ export function OwnerDashboard() {
 
       {/* Advanced Analytics */}
       <Tabs defaultValue="performance" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="performance">Performance</TabsTrigger>
           <TabsTrigger value="products">Products</TabsTrigger>
-          <TabsTrigger value="inventory-analytics">Inventory Analytics</TabsTrigger>
           <TabsTrigger value="customers">Customers</TabsTrigger>
           <TabsTrigger value="forecasting">Forecasting</TabsTrigger>
           <TabsTrigger value="operations">Operations</TabsTrigger>
@@ -242,7 +218,7 @@ export function OwnerDashboard() {
                 <Button variant="outline" size="sm">View All</Button>
               </div>
               <div className="space-y-3">
-                {topSellingProducts.slice(0, 4).map((product, index) => (
+                {mockProducts.slice(0, 4).map((product, index) => (
                   <div key={product.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
                     <div className="flex items-center space-x-3">
                       <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center text-sm font-bold text-primary">
@@ -255,7 +231,7 @@ export function OwnerDashboard() {
                     </div>
                     <div className="text-right">
                       <p className="font-semibold">${product.price}</p>
-                      <Badge variant="secondary">{Math.max(0, 50 - product.stock)} sold</Badge>
+                      <Badge variant="secondary">{20 - product.stock} sold</Badge>
                     </div>
                   </div>
                 ))}
@@ -264,37 +240,39 @@ export function OwnerDashboard() {
           </div>
         </TabsContent>
 
-        <TabsContent value="inventory-analytics" className="space-y-4">
-          <InventoryManagement 
-            products={products} 
-            onUpdateProducts={handleUpdateProducts}
-          />
-        </TabsContent>
-
         <TabsContent value="products" className="space-y-4">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <Card className="p-6">
               <h3 className="text-lg font-semibold mb-4">Category Performance</h3>
               <div className="space-y-3">
-                {Object.entries(categoryBreakdown).map(([category, productList]) => {
-                  const count = productList.length;
-                  const categoryProducts = productList;
-                  const categoryValue = categoryProducts.reduce((sum, p) => sum + (p.price * p.stock), 0);
-                  const maxCount = Math.max(...Object.values(categoryBreakdown).map(arr => arr.length));
-                  const isTopCategory = count === maxCount;
-                  
-                  return (
-                    <div key={category} className="flex justify-between items-center">
-                      <span className="text-sm">{category}</span>
-                      <div className="flex items-center space-x-2">
-                        <Badge className={isTopCategory ? "bg-success/10 text-success" : "bg-secondary text-secondary-foreground"}>
-                          {isTopCategory ? 'Top Category' : `${count} items`}
-                        </Badge>
-                        <span className="font-semibold">${categoryValue.toFixed(0)}</span>
-                      </div>
-                    </div>
-                  );
-                })}
+                <div className="flex justify-between items-center">
+                  <span className="text-sm">Dresses</span>
+                  <div className="flex items-center space-x-2">
+                    <Badge className="bg-success/10 text-success">Top Seller</Badge>
+                    <span className="font-semibold">$8,450</span>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm">Accessories</span>
+                  <div className="flex items-center space-x-2">
+                    <Badge variant="secondary">Growing</Badge>
+                    <span className="font-semibold">$5,230</span>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm">Tops</span>
+                  <div className="flex items-center space-x-2">
+                    <Badge variant="outline">Stable</Badge>
+                    <span className="font-semibold">$3,890</span>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm">Bottoms</span>
+                  <div className="flex items-center space-x-2">
+                    <Badge variant="destructive">Declining</Badge>
+                    <span className="font-semibold">$2,100</span>
+                  </div>
+                </div>
               </div>
             </Card>
 
@@ -327,8 +305,8 @@ export function OwnerDashboard() {
             <Card className="p-6">
               <h3 className="text-lg font-semibold mb-4">Profit Margins</h3>
               <div className="space-y-3">
-                {products.slice(0, 3).map((product) => {
-                  const margin = InventoryService.calculateProfitMargin(product);
+                {mockProducts.slice(0, 3).map((product) => {
+                  const margin = ((product.price - product.cost) / product.price * 100);
                   return (
                     <div key={product.id} className="space-y-2">
                       <div className="flex justify-between text-sm">
@@ -338,7 +316,7 @@ export function OwnerDashboard() {
                       <div className="w-full bg-muted rounded-full h-2">
                         <div 
                           className="bg-primary h-2 rounded-full" 
-                          style={{ width: `${Math.min(margin, 100)}%` }}
+                          style={{ width: `${margin}%` }}
                         ></div>
                       </div>
                     </div>

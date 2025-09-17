@@ -5,6 +5,8 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { mockProducts, mockCustomers, Product, Customer } from '@/data/mockData';
 import { useInventory } from '@/hooks/useInventory';
+import { AddCustomerDialog } from './AddCustomerDialog';
+import { BillDialog } from './BillDialog';
 import { 
   Search, 
   ShoppingCart, 
@@ -15,7 +17,11 @@ import {
   User,
   Gift,
   Trash2,
-  Package
+  Package,
+  Receipt,
+  Edit3,
+  Check,
+  X
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
@@ -31,6 +37,10 @@ export function CashierDashboard() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [showCustomerSearch, setShowCustomerSearch] = useState(false);
+  const [customers, setCustomers] = useState<Customer[]>(mockCustomers);
+  const [editingPrice, setEditingPrice] = useState<{ index: number; price: string } | null>(null);
+  const [showBill, setShowBill] = useState(false);
+  const [lastPaymentMethod, setLastPaymentMethod] = useState('');
   
   const { products, updateProduct } = useInventory(mockProducts);
 
@@ -105,14 +115,28 @@ export function CashierDashboard() {
         }
       }
 
-      // Simulate checkout
+      // Update customer data if selected
+      if (selectedCustomer) {
+        setCustomers(customers.map(customer => 
+          customer.id === selectedCustomer.id 
+            ? { 
+                ...customer, 
+                totalSpent: customer.totalSpent + total,
+                visits: customer.visits + 1,
+                lastVisit: new Date().toISOString().split('T')[0]
+              }
+            : customer
+        ));
+      }
+
+      setLastPaymentMethod(paymentMethod);
+      setShowBill(true);
+      
       toast({
         title: "Sale completed!",
         description: `Payment of $${total.toFixed(2)} processed via ${paymentMethod}`,
       });
       
-      setCart([]);
-      setSelectedCustomer(null);
     } catch (error) {
       toast({
         title: "Checkout Error",
@@ -120,6 +144,39 @@ export function CashierDashboard() {
         variant: "destructive"
       });
     }
+  };
+
+  const handleBillClose = () => {
+    setShowBill(false);
+    setCart([]);
+    setSelectedCustomer(null);
+    setLastPaymentMethod('');
+  };
+
+  const addNewCustomer = (customer: Customer) => {
+    setCustomers([...customers, customer]);
+    setSelectedCustomer(customer);
+    setShowCustomerSearch(false);
+  };
+
+  const startEditingPrice = (index: number, currentPrice: number) => {
+    setEditingPrice({ index, price: currentPrice.toString() });
+  };
+
+  const saveEditedPrice = (index: number) => {
+    if (editingPrice && editingPrice.price && !isNaN(Number(editingPrice.price))) {
+      const newPrice = Number(editingPrice.price);
+      if (newPrice > 0) {
+        setCart(cart.map((item, i) => 
+          i === index ? { ...item, price: newPrice } : item
+        ));
+      }
+    }
+    setEditingPrice(null);
+  };
+
+  const cancelEditingPrice = () => {
+    setEditingPrice(null);
   };
 
   return (
@@ -186,12 +243,12 @@ export function CashierDashboard() {
             className="w-full justify-start"
           >
             <User className="w-4 h-4 mr-2" />
-            {selectedCustomer ? selectedCustomer.name : "Select Customer (Optional)"}
+            {selectedCustomer ? `${selectedCustomer.firstName} ${selectedCustomer.lastName}` : "Select Customer (Optional)"}
           </Button>
           
           {showCustomerSearch && (
             <div className="mt-2 space-y-1 max-h-32 overflow-auto">
-              {mockCustomers.map(customer => (
+              {customers.map(customer => (
                 <Button
                   key={customer.id}
                   variant="ghost"
@@ -201,9 +258,10 @@ export function CashierDashboard() {
                   }}
                   className="w-full justify-start text-sm"
                 >
-                  {customer.name} - {customer.loyaltyPoints}pts
+                  {customer.firstName} {customer.lastName} - {customer.loyaltyPoints}pts
                 </Button>
               ))}
+              <AddCustomerDialog onAddCustomer={addNewCustomer} />
             </div>
           )}
         </div>
@@ -222,7 +280,49 @@ export function CashierDashboard() {
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <h4 className="font-medium text-sm">{item.product.name}</h4>
-                    <p className="text-xs text-muted-foreground">${item.price}</p>
+                    <div className="flex items-center space-x-2 mt-1">
+                      {editingPrice?.index === index ? (
+                        <div className="flex items-center space-x-1">
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={editingPrice.price}
+                            onChange={(e) => setEditingPrice({ ...editingPrice, price: e.target.value })}
+                            className="h-6 w-16 text-xs"
+                            autoFocus
+                          />
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => saveEditedPrice(index)}
+                            className="p-1 h-6 w-6"
+                          >
+                            <Check className="w-3 h-3 text-green-600" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={cancelEditingPrice}
+                            className="p-1 h-6 w-6"
+                          >
+                            <X className="w-3 h-3 text-red-600" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center space-x-1">
+                          <span className="text-xs text-muted-foreground">${item.price.toFixed(2)}</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => startEditingPrice(index, item.price)}
+                            className="p-1 h-5 w-5"
+                          >
+                            <Edit3 className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <Button
                     variant="ghost"
@@ -296,7 +396,29 @@ export function CashierDashboard() {
             <DollarSign className="w-4 h-4 mr-2" />
             Pay by Cash
           </Button>
+          
+          {cart.length > 0 && (
+            <Button
+              onClick={() => setShowBill(true)}
+              variant="secondary"
+              className="w-full"
+            >
+              <Receipt className="w-4 h-4 mr-2" />
+              Preview Bill
+            </Button>
+          )}
         </div>
+        
+        <BillDialog
+          open={showBill}
+          onOpenChange={handleBillClose}
+          cart={cart}
+          customer={selectedCustomer}
+          subtotal={subtotal}
+          tax={tax}
+          total={total}
+          paymentMethod={lastPaymentMethod || 'preview'}
+        />
       </div>
     </div>
   );

@@ -294,8 +294,8 @@ export function ManagerDashboard() {
                       <Users className="w-5 h-5 text-primary" />
                     </div>
                     <div>
-                      <p className="font-medium">{customer.name}</p>
-                      <p className="text-sm text-muted-foreground">{customer.email} • {customer.visits} visits</p>
+                      <p className="font-medium">{customer.firstName} {customer.lastName}</p>
+                      <p className="text-sm text-muted-foreground">{customer.phone} • {customer.visits} visits</p>
                     </div>
                   </div>
                   <div className="text-right">

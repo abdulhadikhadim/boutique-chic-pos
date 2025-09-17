@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,9 +7,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { mockProducts, Product, ProductVariant } from '@/data/mockData';
+import { Product, ProductVariant } from '@/data/mockData';
+import { apiClient } from '@/services/apiClient';
 import { 
   Plus, 
   Package, 
@@ -36,14 +37,16 @@ interface NewProductForm {
 }
 
 interface InventoryManagementProps {
-  products: Product[];
-  onUpdateProducts: (products: Product[]) => void;
+  products?: Product[];
+  onUpdateProducts?: (products: Product[]) => void;
 }
 
-export function InventoryManagement({ products, onUpdateProducts }: InventoryManagementProps) {
+export function InventoryManagement({ products: propProducts, onUpdateProducts }: InventoryManagementProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [products, setProducts] = useState<Product[]>(propProducts || []);
+  const [loading, setLoading] = useState(true);
   const [newProduct, setNewProduct] = useState<NewProductForm>({
     name: '',
     category: '',
@@ -54,6 +57,33 @@ export function InventoryManagement({ products, onUpdateProducts }: InventoryMan
     description: '',
     variants: []
   });
+
+  // Load products from API
+  useEffect(() => {
+    if (propProducts) {
+      setProducts(propProducts);
+      setLoading(false);
+    } else {
+      loadProducts();
+    }
+  }, [propProducts]);
+
+  const loadProducts = async () => {
+    try {
+      setLoading(true);
+      const response = await apiClient.getProducts({ limit: 1000 });
+      setProducts(response.data || []);
+    } catch (error) {
+      console.error('Error loading products:', error);
+      toast({
+        title: "Error Loading Products",
+        description: "Failed to load products from server",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const categories = ['Dresses', 'Tops', 'Bottoms', 'Accessories', 'Shoes', 'Outerwear'];
 
@@ -66,7 +96,7 @@ export function InventoryManagement({ products, onUpdateProducts }: InventoryMan
   const lowStockProducts = products.filter(p => p.stock < 10);
   const outOfStockProducts = products.filter(p => p.stock === 0);
 
-  const handleAddProduct = () => {
+  const handleAddProduct = async () => {
     if (!newProduct.name || !newProduct.price || !newProduct.cost || !newProduct.stock || !newProduct.sku) {
       toast({
         title: "Missing Information",
@@ -76,38 +106,70 @@ export function InventoryManagement({ products, onUpdateProducts }: InventoryMan
       return;
     }
 
-    const product: Product = {
-      id: Date.now().toString(),
-      name: newProduct.name,
-      category: newProduct.category || 'Uncategorized',
-      price: parseFloat(newProduct.price),
-      cost: parseFloat(newProduct.cost),
-      stock: parseInt(newProduct.stock),
-      sku: newProduct.sku,
-      description: newProduct.description,
-      image: '/api/placeholder/300/400',
-      variants: newProduct.variants
-    };
+    // Check for duplicate SKU in existing products
+    const existingProduct = products.find(p => p.sku.toLowerCase() === newProduct.sku.toLowerCase());
+    if (existingProduct) {
+      toast({
+        title: "Duplicate SKU",
+        description: "A product with this SKU already exists. Please use a different SKU.",
+        variant: "destructive"
+      });
+      return;
+    }
 
-    onUpdateProducts([...products, product]);
-    
-    setNewProduct({
-      name: '',
-      category: '',
-      price: '',
-      cost: '',
-      stock: '',
-      sku: '',
-      description: '',
-      variants: []
-    });
-    
-    setShowAddForm(false);
-    
-    toast({
-      title: "Product Added",
-      description: `${product.name} has been added to inventory`,
-    });
+    try {
+      const productData = {
+        name: newProduct.name,
+        category: newProduct.category || 'Uncategorized',
+        price: parseFloat(newProduct.price),
+        cost: parseFloat(newProduct.cost),
+        stock: parseInt(newProduct.stock),
+        sku: newProduct.sku,
+        description: newProduct.description || '',
+        image: '/api/placeholder/300/400',
+        variants: Array.isArray(newProduct.variants) ? newProduct.variants : []
+      };
+
+      const response = await apiClient.createProduct(productData);
+      const createdProduct = response.data;
+      
+      // Update local state
+      const updatedProducts = [...products, createdProduct];
+      setProducts(updatedProducts);
+      
+      // Call callback if provided
+      if (onUpdateProducts) {
+        onUpdateProducts(updatedProducts);
+      }
+      
+      setNewProduct({
+        name: '',
+        category: '',
+        price: '',
+        cost: '',
+        stock: '',
+        sku: '',
+        description: '',
+        variants: []
+      });
+      
+      setShowAddForm(false);
+      
+      toast({
+        title: "Product Added",
+        description: `${createdProduct.name} has been added to inventory`,
+      });
+    } catch (error) {
+      console.error('Error adding product:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to add product. Please try again.';
+      toast({
+        title: "Error Adding Product",
+        description: errorMessage.includes('SKU already exists') ? 
+          'A product with this SKU already exists. Please use a different SKU.' : 
+          errorMessage,
+        variant: "destructive"
+      });
+    }
   };
 
   const handleEditProduct = (product: Product) => {
@@ -125,48 +187,100 @@ export function InventoryManagement({ products, onUpdateProducts }: InventoryMan
     setShowAddForm(true);
   };
 
-  const handleUpdateProduct = () => {
+  const handleUpdateProduct = async () => {
     if (!editingProduct) return;
 
-    const updatedProduct: Product = {
-      ...editingProduct,
-      name: newProduct.name,
-      category: newProduct.category || 'Uncategorized',
-      price: parseFloat(newProduct.price),
-      cost: parseFloat(newProduct.cost),
-      stock: parseInt(newProduct.stock),
-      sku: newProduct.sku,
-      description: newProduct.description,
-      variants: newProduct.variants
-    };
+    // Check for duplicate SKU in other products (excluding current product)
+    const existingProduct = products.find(p => 
+      p.id !== editingProduct.id && 
+      p.sku.toLowerCase() === newProduct.sku.toLowerCase()
+    );
+    if (existingProduct) {
+      toast({
+        title: "Duplicate SKU",
+        description: "Another product with this SKU already exists. Please use a different SKU.",
+        variant: "destructive"
+      });
+      return;
+    }
 
-    onUpdateProducts(products.map(p => p.id === editingProduct.id ? updatedProduct : p));
-    
-    setEditingProduct(null);
-    setNewProduct({
-      name: '',
-      category: '',
-      price: '',
-      cost: '',
-      stock: '',
-      sku: '',
-      description: '',
-      variants: []
-    });
-    setShowAddForm(false);
-    
-    toast({
-      title: "Product Updated",
-      description: `${updatedProduct.name} has been updated`,
-    });
+    try {
+      const productData = {
+        name: newProduct.name,
+        category: newProduct.category || 'Uncategorized',
+        price: parseFloat(newProduct.price),
+        cost: parseFloat(newProduct.cost),
+        stock: parseInt(newProduct.stock),
+        sku: newProduct.sku,
+        description: newProduct.description || '',
+        image: editingProduct.image,
+        variants: Array.isArray(newProduct.variants) ? newProduct.variants : []
+      };
+
+      const response = await apiClient.updateProduct(editingProduct.id, productData);
+      const updatedProduct = response.data;
+      
+      // Update local state
+      const updatedProducts = products.map(p => p.id === editingProduct.id ? updatedProduct : p);
+      setProducts(updatedProducts);
+      
+      // Call callback if provided
+      if (onUpdateProducts) {
+        onUpdateProducts(updatedProducts);
+      }
+      
+      setEditingProduct(null);
+      setNewProduct({
+        name: '',
+        category: '',
+        price: '',
+        cost: '',
+        stock: '',
+        sku: '',
+        description: '',
+        variants: []
+      });
+      setShowAddForm(false);
+      
+      toast({
+        title: "Product Updated",
+        description: `${updatedProduct.name} has been updated`,
+      });
+    } catch (error) {
+      console.error('Error updating product:', error);
+      toast({
+        title: "Error Updating Product",
+        description: "Failed to update product. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
-  const handleDeleteProduct = (productId: string) => {
-    onUpdateProducts(products.filter(p => p.id !== productId));
-    toast({
-      title: "Product Deleted",
-      description: "Product has been removed from inventory",
-    });
+  const handleDeleteProduct = async (productId: string) => {
+    try {
+      await apiClient.deleteProduct(productId);
+      
+      // Update local state
+      const updatedProducts = products.filter(p => p.id !== productId);
+      setProducts(updatedProducts);
+      
+      // Call callback if provided
+      if (onUpdateProducts) {
+        onUpdateProducts(updatedProducts);
+      }
+      
+      toast({
+        title: "Product Deleted",
+        description: "Product has been removed from inventory",
+      });
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      toast({
+        title: "Error Deleting Product",
+        description: "Failed to delete product. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const exportToCSV = () => {
@@ -252,12 +366,12 @@ export function InventoryManagement({ products, onUpdateProducts }: InventoryMan
           <p className="text-muted-foreground">Manage your product inventory</p>
         </div>
         <div className="flex space-x-2">
-          <Button variant="outline" onClick={exportToCSV}>
+          <Button variant="outline" onClick={exportToCSV} disabled={loading}>
             <Download className="w-4 h-4 mr-2" />
             Export CSV
           </Button>
           <label htmlFor="csv-import">
-            <Button variant="outline" asChild>
+            <Button variant="outline" asChild disabled={loading}>
               <span>
                 <Upload className="w-4 h-4 mr-2" />
                 Import CSV
@@ -273,7 +387,7 @@ export function InventoryManagement({ products, onUpdateProducts }: InventoryMan
           />
           <Dialog open={showAddForm} onOpenChange={setShowAddForm}>
             <DialogTrigger asChild>
-              <Button onClick={() => setEditingProduct(null)}>
+              <Button onClick={() => setEditingProduct(null)} disabled={loading}>
                 <Plus className="w-4 h-4 mr-2" />
                 Add Product
               </Button>
@@ -282,6 +396,15 @@ export function InventoryManagement({ products, onUpdateProducts }: InventoryMan
         </div>
       </div>
 
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading inventory...</p>
+          </div>
+        </div>
+      ) : (
+        <>
       {/* Alerts */}
       {(lowStockProducts.length > 0 || outOfStockProducts.length > 0) && (
         <div className="space-y-3">
@@ -449,6 +572,9 @@ export function InventoryManagement({ products, onUpdateProducts }: InventoryMan
             <DialogTitle>
               {editingProduct ? 'Edit Product' : 'Add New Product'}
             </DialogTitle>
+            <DialogDescription>
+              {editingProduct ? 'Update the product information below.' : 'Fill in the details to add a new product to your inventory.'}
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -543,6 +669,8 @@ export function InventoryManagement({ products, onUpdateProducts }: InventoryMan
           </div>
         </DialogContent>
       </Dialog>
+        </>
+      )}
     </div>
   );
 }

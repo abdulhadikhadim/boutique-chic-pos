@@ -4,8 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { mockProducts, mockSales, mockCustomers } from '@/data/mockData';
-import { InventoryManagement } from './InventoryManagement';
-import { useInventory } from '@/hooks/useInventory';
 import { 
   TrendingUp, 
   Package, 
@@ -15,36 +13,21 @@ import {
   Clock,
   BarChart3,
   ShoppingCart,
-  Calendar,
-  Download
+  Calendar
 } from 'lucide-react';
 
 export function ManagerDashboard() {
   const [selectedPeriod, setSelectedPeriod] = useState('today');
-  const { 
-    products, 
-    addProduct, 
-    updateProduct, 
-    deleteProduct, 
-    exportProducts, 
-    importProducts,
-    stats 
-  } = useInventory(mockProducts);
 
   // Calculate metrics
   const totalSales = mockSales.reduce((sum, sale) => sum + sale.total, 0);
-  const totalProducts = products.length;
-  const lowStockProducts = products.filter(p => p.stock < 10);
+  const totalProducts = mockProducts.length;
+  const lowStockProducts = mockProducts.filter(p => p.stock < 10);
   const totalCustomers = mockCustomers.length;
 
-  const topSellingProducts = products
+  const topSellingProducts = mockProducts
     .sort((a, b) => b.stock - a.stock)
     .slice(0, 5);
-
-  const handleUpdateProducts = (updatedProducts: any[]) => {
-    // This will be handled by the inventory hook
-    console.log('Products updated:', updatedProducts.length);
-  };
 
   return (
     <div className="p-6 space-y-6 overflow-auto">
@@ -132,54 +115,14 @@ export function ManagerDashboard() {
 
       {/* Main Content */}
       <Tabs defaultValue="inventory" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="inventory">Inventory</TabsTrigger>
-          <TabsTrigger value="manage-inventory">Manage Inventory</TabsTrigger>
           <TabsTrigger value="sales">Sales</TabsTrigger>
           <TabsTrigger value="customers">Customers</TabsTrigger>
           <TabsTrigger value="reports">Reports</TabsTrigger>
         </TabsList>
 
         <TabsContent value="inventory" className="space-y-4">
-          {/* Inventory Stats Overview */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <Card className="p-4 border-0 bg-gradient-to-br from-success/10 to-success/5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Inventory Value</p>
-                  <p className="text-2xl font-bold text-success">${stats.totalValue.toFixed(2)}</p>
-                </div>
-                <div className="w-12 h-12 bg-success/20 rounded-full flex items-center justify-center">
-                  <DollarSign className="w-6 h-6 text-success" />
-                </div>
-              </div>
-            </Card>
-            
-            <Card className="p-4 border-0 bg-gradient-to-br from-primary/10 to-primary/5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Potential Profit</p>
-                  <p className="text-2xl font-bold text-primary">${stats.potentialProfit.toFixed(2)}</p>
-                </div>
-                <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center">
-                  <TrendingUp className="w-6 h-6 text-primary" />
-                </div>
-              </div>
-            </Card>
-            
-            <Card className="p-4 border-0 bg-gradient-to-br from-warning/10 to-warning/5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Needs Attention</p>
-                  <p className="text-2xl font-bold text-warning">{stats.lowStockCount + stats.outOfStockCount}</p>
-                </div>
-                <div className="w-12 h-12 bg-warning/20 rounded-full flex items-center justify-center">
-                  <AlertTriangle className="w-6 h-6 text-warning" />
-                </div>
-              </div>
-            </Card>
-          </div>
-
           {/* Low Stock Alert */}
           {lowStockProducts.length > 0 && (
             <Card className="p-4 border-warning/50 bg-warning/5">
@@ -204,15 +147,10 @@ export function ManagerDashboard() {
           <Card className="p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">Inventory Overview</h3>
-              <div className="flex space-x-2">
-                <Button variant="outline" size="sm" onClick={exportProducts}>
-                  <Download className="w-4 h-4 mr-2" />
-                  Export
-                </Button>
-              </div>
+              <Button variant="outline" size="sm">Add Product</Button>
             </div>
             <div className="space-y-3">
-              {products.slice(0, 10).map(product => (
+              {mockProducts.map(product => (
                 <div key={product.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                   <div className="flex items-center space-x-3">
                     <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
@@ -225,26 +163,14 @@ export function ManagerDashboard() {
                   </div>
                   <div className="text-right">
                     <p className="font-semibold">${product.price}</p>
-                    <Badge variant={product.stock < 10 ? product.stock === 0 ? "destructive" : "secondary" : "default"}>
+                    <Badge variant={product.stock < 10 ? "destructive" : "secondary"}>
                       {product.stock} in stock
                     </Badge>
                   </div>
                 </div>
               ))}
-              {products.length > 10 && (
-                <div className="text-center py-2">
-                  <p className="text-sm text-muted-foreground">... and {products.length - 10} more products</p>
-                </div>
-              )}
             </div>
           </Card>
-        </TabsContent>
-
-        <TabsContent value="manage-inventory" className="space-y-4">
-          <InventoryManagement 
-            products={products} 
-            onUpdateProducts={handleUpdateProducts}
-          />
         </TabsContent>
 
         <TabsContent value="sales" className="space-y-4">
@@ -294,8 +220,8 @@ export function ManagerDashboard() {
                       <Users className="w-5 h-5 text-primary" />
                     </div>
                     <div>
-                      <p className="font-medium">{customer.firstName} {customer.lastName}</p>
-                      <p className="text-sm text-muted-foreground">{customer.phone} • {customer.visits} visits</p>
+                      <p className="font-medium">{customer.name}</p>
+                      <p className="text-sm text-muted-foreground">{customer.email} • {customer.visits} visits</p>
                     </div>
                   </div>
                   <div className="text-right">

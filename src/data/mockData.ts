@@ -23,12 +23,9 @@ export interface ProductVariant {
 
 export interface Customer {
   id: string;
-  firstName: string;
-  lastName: string;
+  name: string;
+  email: string;
   phone: string;
-  address: string;
-  gender: 'male' | 'female' | 'other';
-  alternatePhone?: string;
   loyaltyPoints: number;
   totalSpent: number;
   visits: number;
@@ -143,12 +140,9 @@ export const mockProducts: Product[] = [
 export const mockCustomers: Customer[] = [
   {
     id: '1',
-    firstName: 'Sarah',
-    lastName: 'Johnson',
+    name: 'Sarah Johnson',
+    email: 'sarah@email.com',
     phone: '(555) 123-4567',
-    address: '123 Main St, City, State 12345',
-    gender: 'female',
-    alternatePhone: '(555) 123-4568',
     loyaltyPoints: 450,
     totalSpent: 1250.00,
     visits: 8,
@@ -160,11 +154,9 @@ export const mockCustomers: Customer[] = [
   },
   {
     id: '2',
-    firstName: 'Emily',
-    lastName: 'Davis',
+    name: 'Emily Davis',
+    email: 'emily@email.com',
     phone: '(555) 987-6543',
-    address: '456 Oak Ave, City, State 12345',
-    gender: 'female',
     loyaltyPoints: 230,
     totalSpent: 680.00,
     visits: 5,
@@ -176,12 +168,9 @@ export const mockCustomers: Customer[] = [
   },
   {
     id: '3',
-    firstName: 'Jennifer',
-    lastName: 'Wilson',
+    name: 'Jennifer Wilson',
+    email: 'jen@email.com',
     phone: '(555) 456-7890',
-    address: '789 Pine St, City, State 12345',
-    gender: 'female',
-    alternatePhone: '(555) 456-7891',
     loyaltyPoints: 890,
     totalSpent: 2340.00,
     visits: 15,

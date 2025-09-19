@@ -93,7 +93,7 @@ export function ManagerDashboard() {
       // Add computed name property for backward compatibility
       const customersWithNames = (customersResponse.data || []).map((customer: Customer) => ({
         ...customer,
-        name: `${customer.first_name} ${customer.last_name}`
+        name: `{customer.first_name} {customer.last_name}`
       }));
       setCustomers(customersWithNames);
       setSales(salesResponse.data || []);
@@ -129,7 +129,7 @@ export function ManagerDashboard() {
     if (amount <= 0 || amount > selectedCustomerForPayment.totalOwed) {
       toast({
         title: "Invalid Amount",
-        description: `Payment amount must be between $0.01 and $${selectedCustomerForPayment.totalOwed.toFixed(2)}`,
+        description: `Payment amount must be between 0.01 and {selectedCustomerForPayment.totalOwed.toFixed(2)}`,
         variant: "destructive"
       });
       return;
@@ -205,7 +205,7 @@ export function ManagerDashboard() {
 
       toast({
         title: "Payment Processed",
-        description: `Successfully processed $${amount.toFixed(2)} payment from ${selectedCustomerForPayment.first_name} ${selectedCustomerForPayment.last_name}`,
+        description: `Successfully processed {amount.toFixed(2)} payment from {selectedCustomerForPayment.first_name} {selectedCustomerForPayment.last_name}`,
       });
 
     } catch (error) {
@@ -245,7 +245,7 @@ export function ManagerDashboard() {
       const createdCustomer = response.data;
       
       // Add computed name property for backward compatibility
-      createdCustomer.name = `${createdCustomer.first_name} ${createdCustomer.last_name}`;
+      createdCustomer.name = `{createdCustomer.first_name} {createdCustomer.last_name}`;
       
       setCustomers([...customers, createdCustomer]);
       setShowAddCustomer(false);
@@ -263,7 +263,7 @@ export function ManagerDashboard() {
       
       toast({
         title: "Customer Added",
-        description: `${createdCustomer.first_name} ${createdCustomer.last_name} has been added`,
+        description: `{createdCustomer.first_name} {createdCustomer.last_name} has been added`,
       });
     } catch (error) {
       console.error('Error adding customer:', error);
@@ -401,7 +401,7 @@ export function ManagerDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Today's Sales</p>
-              <p className="text-2xl font-bold text-success">${totalSales.toFixed(2)}</p>
+              <p className="text-2xl font-bold text-success">{totalSales.toFixed(2)}</p>
             </div>
             <div className="w-12 h-12 bg-success/20 rounded-full flex items-center justify-center">
               <DollarSign className="w-6 h-6 text-success" />
@@ -479,7 +479,7 @@ export function ManagerDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Total Inventory Value</p>
-                  <p className="text-2xl font-bold text-success">${products.reduce((sum, p) => sum + (p.price * p.stock), 0).toFixed(2)}</p>
+                  <p className="text-2xl font-bold text-success">{products.reduce((sum, p) => sum + (p.price * p.stock), 0).toFixed(2)}</p>
                 </div>
                 <div className="w-12 h-12 bg-success/20 rounded-full flex items-center justify-center">
                   <DollarSign className="w-6 h-6 text-success" />
@@ -583,14 +583,14 @@ export function ManagerDashboard() {
                       </div>
                       <div className="text-right space-y-1">
                         <div className="flex items-center space-x-2">
-                          <p className="font-semibold">${product.price.toFixed(2)}</p>
-                          <span className="text-xs text-muted-foreground">Cost: ${product.cost.toFixed(2)}</span>
+                          <p className="font-semibold">{product.price.toFixed(2)}</p>
+                          <span className="text-xs text-muted-foreground">Cost: {product.cost.toFixed(2)}</span>
                         </div>
                         <Badge variant={product.stock < 10 ? product.stock === 0 ? "destructive" : "secondary" : "default"}>
                           {product.stock} in stock
                         </Badge>
                         <div className="text-xs text-muted-foreground">
-                          Profit: ${((product.price - product.cost) * product.stock).toFixed(2)}
+                          Profit: {((product.price - product.cost) * product.stock).toFixed(2)}
                         </div>
                       </div>
                     </div>
@@ -664,7 +664,7 @@ export function ManagerDashboard() {
                           </div>
                         </div>
                         <div className="text-right space-y-1">
-                          <p className="font-semibold text-success">${(sale.total || 0).toFixed(2)}</p>
+                          <p className="font-semibold text-success">{(sale.total || 0).toFixed(2)}</p>
                           <div className="flex items-center space-x-2">
                             <Badge variant="secondary">{sale.payment_method}</Badge>
                             <Badge 
@@ -677,7 +677,7 @@ export function ManagerDashboard() {
                           </div>
                           {sale.status === 'partial_payment' && sale.remaining_amount && (
                             <p className="text-xs text-orange-600">
-                              Due: ${sale.remaining_amount.toFixed(2)}
+                              Due: {sale.remaining_amount.toFixed(2)}
                             </p>
                           )}
                         </div>
@@ -703,7 +703,7 @@ export function ManagerDashboard() {
                   <div key={customer.id} className="flex items-center justify-between text-sm">
                     <span>{customer.first_name} {customer.last_name}</span>
                     <Badge variant="outline" className="text-orange-600 border-orange-600">
-                      Owes: ${customer.totalOwed.toFixed(2)}
+                      Owes: {customer.totalOwed.toFixed(2)}
                     </Badge>
                   </div>
                 ))}
@@ -756,14 +756,14 @@ export function ManagerDashboard() {
                     const hasOutstanding = outstandingBalance > 0;
                     
                     return (
-                      <div key={customer.id} className={`flex items-center justify-between p-4 rounded-lg border transition-colors ${
+                      <div key={customer.id} className={`flex items-center justify-between p-4 rounded-lg border transition-colors {
                         hasOutstanding ? 'bg-orange-50 border-orange-200 hover:bg-orange-100' : 'bg-muted/50 hover:bg-muted/70'
                       }`}>
                         <div className="flex items-center space-x-4">
-                          <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+                          <div className={`w-12 h-12 rounded-lg flex items-center justify-center {
                             hasOutstanding ? 'bg-orange-100' : 'bg-primary/10'
                           }`}>
-                            <Users className={`w-6 h-6 ${
+                            <Users className={`w-6 h-6 {
                               hasOutstanding ? 'text-orange-600' : 'text-primary'
                             }`} />
                           </div>
@@ -816,12 +816,12 @@ export function ManagerDashboard() {
                         </div>
                         <div className="text-right space-y-1 min-w-32">
                           <div className="space-y-1">
-                            <p className="font-semibold">${(customer.total_spent || 0).toFixed(2)}</p>
+                            <p className="font-semibold">{(customer.total_spent || 0).toFixed(2)}</p>
                             <p className="text-xs text-muted-foreground">Total Spent</p>
                           </div>
                           {hasOutstanding && (
                             <div className="space-y-1">
-                              <p className="font-semibold text-orange-600">${outstandingBalance.toFixed(2)}</p>
+                              <p className="font-semibold text-orange-600">{outstandingBalance.toFixed(2)}</p>
                               <p className="text-xs text-orange-600">Outstanding</p>
                             </div>
                           )}
@@ -859,15 +859,15 @@ export function ManagerDashboard() {
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <span className="text-sm">This Month</span>
-                  <span className="font-semibold text-success">${thisMonthSales.toFixed(2)}</span>
+                  <span className="font-semibold text-success">{thisMonthSales.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm">Last Month</span>
-                  <span className="font-semibold">${lastMonthSales.toFixed(2)}</span>
+                  <span className="font-semibold">{lastMonthSales.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm">Growth</span>
-                  <Badge className={`${
+                  <Badge className={`{
                     salesGrowth >= 0 
                       ? 'bg-success/10 text-success' 
                       : 'bg-destructive/10 text-destructive'
@@ -881,7 +881,7 @@ export function ManagerDashboard() {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm">Average Order Value</span>
-                  <span className="font-semibold">${sales.length > 0 ? (totalSales / sales.length).toFixed(2) : '0.00'}</span>
+                  <span className="font-semibold">{sales.length > 0 ? (totalSales / sales.length).toFixed(2) : '0.00'}</span>
                 </div>
               </div>
             </Card>
@@ -914,7 +914,7 @@ export function ManagerDashboard() {
                             <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
                               <div 
                                 className="h-full bg-primary rounded-full transition-all duration-300" 
-                                style={{ width: `${percentage}%` }}
+                                style={{ width: `{percentage}%` }}
                               ></div>
                             </div>
                             <span className="text-xs font-medium min-w-10">
@@ -941,7 +941,7 @@ export function ManagerDashboard() {
               </div>
               <div className="flex items-center space-x-2">
                 <Badge variant="destructive" className="text-xs">
-                  Total Outstanding: ${customersWithOutstandingBalances.reduce((sum, c) => sum + c.totalOwed, 0).toFixed(2)}
+                  Total Outstanding: {customersWithOutstandingBalances.reduce((sum, c) => sum + c.totalOwed, 0).toFixed(2)}
                 </Badge>
                 <Button variant="outline" size="sm">
                   <Download className="w-4 h-4 mr-2" />
@@ -992,7 +992,7 @@ export function ManagerDashboard() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex flex-col items-end">
-                            <p className="font-semibold text-destructive">${customer.totalOwed.toFixed(2)}</p>
+                            <p className="font-semibold text-destructive">{customer.totalOwed.toFixed(2)}</p>
                             <Badge variant="destructive" className="text-xs mt-1">
                               Outstanding
                             </Badge>
@@ -1002,7 +1002,7 @@ export function ManagerDashboard() {
                           <p className="font-medium">{customer.latestSaleDate}</p>
                         </TableCell>
                         <TableCell className="text-right">
-                          <p className="font-medium">${customer.latestSaleAmount.toFixed(2)}</p>
+                          <p className="font-medium">{customer.latestSaleAmount.toFixed(2)}</p>
                         </TableCell>
                         <TableCell className="text-center">
                           <div className="flex items-center justify-center space-x-1">
@@ -1066,7 +1066,7 @@ export function ManagerDashboard() {
                   )}
                   <p><span className="font-medium">Total Outstanding:</span> 
                     <span className="text-destructive font-semibold ml-1">
-                      ${selectedCustomerForPayment.totalOwed.toFixed(2)}
+                      {selectedCustomerForPayment.totalOwed.toFixed(2)}
                     </span>
                   </p>
                 </div>
@@ -1120,12 +1120,12 @@ export function ManagerDashboard() {
               <div className="p-3 bg-success/10 rounded-lg">
                 <div className="flex justify-between text-sm">
                   <span>Payment Amount:</span>
-                  <span className="font-semibold">${parseFloat(paymentAmount || '0').toFixed(2)}</span>
+                  <span className="font-semibold">{parseFloat(paymentAmount || '0').toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span>Remaining Balance:</span>
                   <span className="font-semibold">
-                    ${(selectedCustomerForPayment.totalOwed - parseFloat(paymentAmount || '0')).toFixed(2)}
+                    {(selectedCustomerForPayment.totalOwed - parseFloat(paymentAmount || '0')).toFixed(2)}
                   </span>
                 </div>
               </div>

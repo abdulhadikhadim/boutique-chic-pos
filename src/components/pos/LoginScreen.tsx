@@ -89,7 +89,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                 className="w-full text-left justify-start"
               >
                 <UserIcon className="w-4 h-4 mr-2" />
-                Cashier Demo (alice@boutique.com)
+                Cashier Account (kamil@boutique.com)
               </Button>
               <Button
                 variant="outline"
@@ -97,7 +97,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                 className="w-full text-left justify-start"
               >
                 <UserIcon className="w-4 h-4 mr-2" />
-                Manager Demo (bob@boutique.com)
+                Manager Account (sajid@boutique.com)
               </Button>
               <Button
                 variant="outline"
@@ -105,7 +105,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                 className="w-full text-left justify-start"
               >
                 <UserIcon className="w-4 h-4 mr-2" />
-                Owner Demo (carol@boutique.com)
+                Owner Account (sajid@boutique.com)
               </Button>
             </div>
           </div>

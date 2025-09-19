@@ -492,7 +492,7 @@ export function OwnerDashboard() {
               <h3 className="text-lg font-semibold mb-4">Staff Performance</h3>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Alice Smith</span>
+                  <span className="text-sm font-medium">Kamil Sajid</span>
                   <Badge variant="secondary">Cashier</Badge>
                 </div>
                 <div className="text-sm text-muted-foreground">

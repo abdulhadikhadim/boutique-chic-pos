@@ -219,22 +219,22 @@ export const mockSales: Sale[] = [
 export const mockUsers: User[] = [
   {
     id: '1',
-    name: 'Alice Smith',
-    email: 'alice@boutique.com',
+    name: 'Kamil Sajid',
+    email: 'kamil@boutique.com',
     role: 'cashier',
     permissions: ['pos', 'customer_lookup']
   },
   {
     id: '2',
-    name: 'Bob Manager',
-    email: 'bob@boutique.com',
+    name: 'Sajid Mahmood',
+    email: 'sajid@boutique.com',
     role: 'manager',
     permissions: ['pos', 'inventory', 'reports', 'customer_management', 'staff_management']
   },
   {
     id: '3',
-    name: 'Carol Owner',
-    email: 'carol@boutique.com',
+    name: 'Sajid Owner',
+    email: 'Sajid@boutique.com',
     role: 'owner',
     permissions: ['pos', 'inventory', 'reports', 'customer_management', 'staff_management', 'admin', 'analytics']
   }

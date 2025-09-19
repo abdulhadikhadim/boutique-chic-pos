@@ -22,7 +22,11 @@ interface BillDialogProps {
   subtotal: number;
   tax: number;
   total: number;
-  onSaleComplete: () => void;
+  onSaleComplete: (saleData?: {
+    paymentMethod: string;
+    paidAmount: number;
+    remainingAmount: number;
+  }) => void;
 }
 
 export function BillDialog({ 
@@ -94,7 +98,6 @@ export function BillDialog({
         customer_id: customer?.id,
         items: saleItems,
         subtotal: subtotal,
-        tax: tax,
         total: total,
         payment_method: paymentMethod,
         cashier_id: '1', // TODO: Get from current user context
@@ -111,12 +114,16 @@ export function BillDialog({
       toast({
         title: "Payment processed!",
         description: remainingAmount > 0 
-          ? `Partial payment of $${paidAmount.toFixed(2)} received. Remaining: $${remainingAmount.toFixed(2)}`
-          : `Full payment of $${paidAmount.toFixed(2)} received${changeAmount > 0 ? `. Change: $${changeAmount.toFixed(2)}` : ''}`,
+          ? `Partial payment of PKR ${paidAmount.toFixed(2)} received. Remaining: PKR ${remainingAmount.toFixed(2)}`
+          : `Full payment of PKR ${paidAmount.toFixed(2)} received${changeAmount > 0 ? `. Change: PKR ${changeAmount.toFixed(2)}` : ''}`,
       });
 
-      // Call the completion callback
-      onSaleComplete();
+      // Call the completion callback with payment data
+      onSaleComplete({
+        paymentMethod,
+        paidAmount,
+        remainingAmount
+      });
       
     } catch (error) {
       console.error('Error processing payment:', error);
@@ -297,8 +304,8 @@ export function BillDialog({
                 <tr>
                   <td>${item.product.name}</td>
                   <td style="text-align: center;">${item.quantity}</td>
-                  <td style="text-align: right;">$${item.price.toFixed(2)}</td>
-                  <td style="text-align: right;">$${(item.price * item.quantity).toFixed(2)}</td>
+                  <td style="text-align: right;">PKR ${item.price.toFixed(2)}</td>
+                  <td style="text-align: right;">PKR ${(item.price * item.quantity).toFixed(2)}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -307,15 +314,11 @@ export function BillDialog({
           <div class="totals">
             <div class="totals-row">
               <span>Subtotal:</span>
-              <span>$${subtotal.toFixed(2)}</span>
-            </div>
-            <div class="totals-row">
-              <span>Tax (8%):</span>
-              <span>$${tax.toFixed(2)}</span>
+              <span>PKR ${subtotal.toFixed(2)}</span>
             </div>
             <div class="totals-row total-line">
               <span>TOTAL AMOUNT:</span>
-              <span>$${total.toFixed(2)}</span>
+              <span>PKR ${total.toFixed(2)}</span>
             </div>
           </div>
 
@@ -327,18 +330,18 @@ export function BillDialog({
             </div>
             <div class="payment-row">
               <span>Amount Paid:</span>
-              <span>$${paidAmount.toFixed(2)}</span>
+              <span>PKR ${paidAmount.toFixed(2)}</span>
             </div>
             ${remainingAmount > 0 ? `
             <div class="payment-row" style="color: #d63384;">
               <span>Remaining Balance:</span>
-              <span>$${remainingAmount.toFixed(2)}</span>
+              <span>PKR ${remainingAmount.toFixed(2)}</span>
             </div>
             ` : ''}
             ${changeAmount > 0 ? `
             <div class="payment-row" style="color: #198754;">
               <span>Change Due:</span>
-              <span>$${changeAmount.toFixed(2)}</span>
+              <span>PKR ${changeAmount.toFixed(2)}</span>
             </div>
             ` : ''}
             
@@ -350,7 +353,7 @@ export function BillDialog({
           <div class="footer">
             <p class="thank-you">Thank you for shopping with us!</p>
             <p>Visit us again soon!</p>
-            ${remainingAmount > 0 ? `<p><strong>Please keep this receipt for balance due: $${remainingAmount.toFixed(2)}</strong></p>` : ''}
+            ${remainingAmount > 0 ? `<p><strong>Please keep this receipt for balance due: PKR ${remainingAmount.toFixed(2)}</strong></p>` : ''}
           </div>
         </body>
         </html>
@@ -377,23 +380,22 @@ ${customer.address ? `Address: ${customer.address}\n` : ''}Loyalty Points: ${cus
 ` : ''}
 ITEMS PURCHASED
 ----------------------------------------
-${cart.map(item => `${item.product.name}\n  Qty: ${item.quantity} x $${item.price.toFixed(2)} = $${(item.price * item.quantity).toFixed(2)}`).join('\n')}
+${cart.map(item => `${item.product.name}\n  Qty: ${item.quantity} x PKR ${item.price.toFixed(2)} = PKR ${(item.price * item.quantity).toFixed(2)}`).join('\n')}
 
 ----------------------------------------
-SUBTOTAL:                    $${subtotal.toFixed(2)}
-TAX (8%):                     $${tax.toFixed(2)}
+SUBTOTAL:                    PKR ${subtotal.toFixed(2)}
 ----------------------------------------
-TOTAL AMOUNT:                $${total.toFixed(2)}
+TOTAL AMOUNT:                PKR ${total.toFixed(2)}
 
 ================================================
                 PAYMENT DETAILS
 ================================================
 Payment Method: ${paymentMethod === 'credit_card' ? 'Credit Card' : paymentMethod === 'debit_card' ? 'Debit Card' : paymentMethod === 'mobile_payment' ? 'Mobile Payment' : 'Cash'}
-Amount Paid:                 $${paidAmount.toFixed(2)}
-${remainingAmount > 0 ? `Remaining Balance:           $${remainingAmount.toFixed(2)}\n` : ''}${changeAmount > 0 ? `Change Due:                  $${changeAmount.toFixed(2)}\n` : ''}
+Amount Paid:                 PKR ${paidAmount.toFixed(2)}
+${remainingAmount > 0 ? `Remaining Balance:           PKR ${remainingAmount.toFixed(2)}\n` : ''}${changeAmount > 0 ? `Change Due:                  PKR ${changeAmount.toFixed(2)}\n` : ''}
 Status: ${remainingAmount > 0 ? 'PARTIAL PAYMENT - BALANCE DUE' : 'PAID IN FULL'}
 
-${remainingAmount > 0 ? `⚠️  IMPORTANT: Balance of $${remainingAmount.toFixed(2)} is still due.\nPlease keep this receipt for your records.\n\n` : ''}Thank you for shopping with us!
+${remainingAmount > 0 ? `⚠️  IMPORTANT: Balance of PKR ${remainingAmount.toFixed(2)} is still due.\nPlease keep this receipt for your records.\n\n` : ''}Thank you for shopping with us!
 Visit us again soon!
 ================================================
     `;
@@ -492,15 +494,11 @@ Visit us again soon!
             <div className="space-y-2 bg-muted/30 p-4 rounded-lg">
               <div className="flex justify-between text-sm">
                 <span>Subtotal:</span>
-                <span>${subtotal.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span>Tax (8%):</span>
-                <span>${tax.toFixed(2)}</span>
+                <span>PKR {subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-lg font-bold border-t pt-2">
                 <span>Total:</span>
-                <span>${total.toFixed(2)}</span>
+                <span>PKR {total.toFixed(2)}</span>
               </div>
             </div>
 
@@ -579,7 +577,7 @@ Visit us again soon!
                           onClick={() => setPaymentAmount((Math.ceil(total / amount) * amount).toString())}
                           className="h-6 px-2 text-xs"
                         >
-                          ${amount}
+                          PKR {amount}
                         </Button>
                       ))}
                     </div>
@@ -592,18 +590,18 @@ Visit us again soon!
                 <div className="space-y-2 bg-muted/50 p-3 rounded">
                   <div className="flex justify-between text-sm">
                     <span>Amount Paying:</span>
-                    <span className="font-medium">${paidAmount.toFixed(2)}</span>
+                    <span className="font-medium">PKR {paidAmount.toFixed(2)}</span>
                   </div>
                   {remainingAmount > 0 && (
                     <div className="flex justify-between text-sm text-orange-600">
                       <span>Remaining Balance:</span>
-                      <span className="font-medium">${remainingAmount.toFixed(2)}</span>
+                      <span className="font-medium">PKR {remainingAmount.toFixed(2)}</span>
                     </div>
                   )}
                   {changeAmount > 0 && (
                     <div className="flex justify-between text-sm text-green-600">
                       <span>Change Due:</span>
-                      <span className="font-medium">${changeAmount.toFixed(2)}</span>
+                      <span className="font-medium">PKR {changeAmount.toFixed(2)}</span>
                     </div>
                   )}
                 </div>
@@ -693,8 +691,8 @@ Visit us again soon!
                     <tr key={index} className="border-t">
                       <td className="p-3">{item.product.name}</td>
                       <td className="text-center p-3">{item.quantity}</td>
-                      <td className="text-right p-3">${item.price.toFixed(2)}</td>
-                      <td className="text-right p-3">${(item.price * item.quantity).toFixed(2)}</td>
+                      <td className="text-right p-3">PKR {item.price.toFixed(2)}</td>
+                      <td className="text-right p-3">PKR {(item.price * item.quantity).toFixed(2)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -706,15 +704,11 @@ Visit us again soon!
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span>Subtotal:</span>
-              <span>${subtotal.toFixed(2)}</span>
+              <span>PKR {subtotal.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between text-sm">
-              <span>Tax (8%):</span>
-              <span>${tax.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between text-lg font-semibold border-t pt-2">
+            <div className="flex justify-between text-lg font-bold border-t pt-2">
               <span>Total:</span>
-              <span>${total.toFixed(2)}</span>
+              <span>PKR {total.toFixed(2)}</span>
             </div>
           </div>
 
@@ -728,18 +722,18 @@ Visit us again soon!
               </div>
               <div className="flex justify-between">
                 <span>Amount Paid:</span>
-                <span className="font-medium">${paidAmount.toFixed(2)}</span>
+                <span className="font-medium">PKR {paidAmount.toFixed(2)}</span>
               </div>
               {remainingAmount > 0 && (
                 <div className="flex justify-between text-orange-600">
                   <span>Remaining Balance:</span>
-                  <span className="font-medium">${remainingAmount.toFixed(2)}</span>
+                  <span className="font-medium">PKR {remainingAmount.toFixed(2)}</span>
                 </div>
               )}
               {changeAmount > 0 && (
                 <div className="flex justify-between text-green-600">
                   <span>Change Due:</span>
-                  <span className="font-medium">${changeAmount.toFixed(2)}</span>
+                  <span className="font-medium">PKR {changeAmount.toFixed(2)}</span>
                 </div>
               )}
             </div>

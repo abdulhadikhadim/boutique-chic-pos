@@ -56,6 +56,20 @@ export function CashierDashboard() {
   const [showBillPreview, setShowBillPreview] = useState(false);
   const [editingPrice, setEditingPrice] = useState<{index: number, price: string} | null>(null);
   const [showBill, setShowBill] = useState(false);
+  const [lastCompletedSale, setLastCompletedSale] = useState<{
+    cart: CartItem[];
+    customer: Customer | null;
+    subtotal: number;
+    tax: number;
+    total: number;
+    paymentMethod: string;
+    paidAmount: number;
+    remainingAmount: number;
+    billNumber: string;
+    date: string;
+    time: string;
+  } | null>(null);
+  const [showCompletedBill, setShowCompletedBill] = useState(false);
   
   // Data states
   const [products, setProducts] = useState<Product[]>([]);
@@ -187,10 +201,10 @@ export function CashierDashboard() {
 
   const handleAddCustomer = async () => {
     try {
-      if (!newCustomer.first_name || !newCustomer.last_name || !newCustomer.phone) {
+      if (!newCustomer.first_name || !newCustomer.last_name) {
         toast({
           title: "Missing Information",
-          description: "Please fill in required fields (First Name, Last Name, Phone)",
+          description: "Please fill in required fields (First Name, Last Name)",
           variant: "destructive"
         });
         return;
@@ -198,6 +212,11 @@ export function CashierDashboard() {
 
       const customerData = {
         ...newCustomer,
+        phone: newCustomer.phone || undefined, // Don't send empty string
+        email: newCustomer.email || undefined,
+        address: newCustomer.address || undefined,
+        gender: newCustomer.gender || undefined,
+        alternate_phone: newCustomer.alternate_phone || undefined,
         loyalty_points: 0,
         total_spent: 0,
         visits: 0
@@ -238,9 +257,10 @@ export function CashierDashboard() {
     }
   };
 
+  // Update calculation to remove tax
   const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const tax = subtotal * 0.08;
-  const total = subtotal + tax;
+  const tax = 0; // No tax calculation
+  const total = subtotal; // No tax calculation
 
   const handleCheckout = () => {
     if (cart.length === 0) {
@@ -256,7 +276,29 @@ export function CashierDashboard() {
     setShowBill(true);
   };
 
-  const handleSaleComplete = () => {
+  // Update handleSaleComplete to remove tax
+  const handleSaleComplete = (saleData?: {
+    paymentMethod: string;
+    paidAmount: number;
+    remainingAmount: number;
+  }) => {
+    // Store completed sale information for bill generation
+    if (saleData) {
+      setLastCompletedSale({
+        cart: [...cart],
+        customer: selectedCustomer,
+        subtotal,
+        tax,
+        total,
+        paymentMethod: saleData.paymentMethod,
+        paidAmount: saleData.paidAmount,
+        remainingAmount: saleData.remainingAmount,
+        billNumber: `BILL-${Date.now()}`,
+        date: new Date().toLocaleDateString(),
+        time: new Date().toLocaleTimeString()
+      });
+    }
+    
     // Clear cart and reset state
     setCart([]);
     setSelectedCustomer(null);
@@ -280,8 +322,8 @@ if (loading) {
   return (
     <div className="flex h-full bg-muted/20">
       {/* Products Grid */}
-      <div className="flex-1 p-6 overflow-auto">
-        <div className="mb-6">
+      <div className="flex-1 p-6 overflow-hidden flex flex-col">
+        <div className="mb-6 flex-shrink-0">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
@@ -293,7 +335,8 @@ if (loading) {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="flex-1 overflow-auto">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pb-6">
           {filteredProducts.map((product) => (
             <Card key={product.id} className="p-4 hover:shadow-elegant transition-shadow cursor-pointer border-0 bg-card">
               <div className="aspect-square bg-muted rounded-lg mb-3 flex items-center justify-center">
@@ -304,7 +347,7 @@ if (loading) {
                 <h3 className="font-medium text-sm line-clamp-2">{product.name}</h3>
                 <p className="text-xs text-muted-foreground">{product.category}</p>
                 <div className="flex items-center justify-between">
-                  <span className="font-semibold text-primary">${product.price}</span>
+                  <span className="font-semibold text-primary">PKR {product.price}</span>
                   <Badge variant={product.stock === 0 ? "destructive" : product.stock < 10 ? "secondary" : "default"} className="text-xs">
                     {product.stock} in stock
                   </Badge>
@@ -322,12 +365,13 @@ if (loading) {
               </div>
             </Card>
           ))}
+          </div>
         </div>
       </div>
 
       {/* Cart Sidebar */}
-      <div className="w-96 bg-card border-l border-border p-6 flex flex-col">
-        <div className="flex items-center justify-between mb-6">
+      <div className="w-96 bg-card border-l border-border p-6 flex flex-col h-full max-h-screen">
+        <div className="flex items-center justify-between mb-6 flex-shrink-0">
           <h2 className="text-xl font-semibold flex items-center">
             <ShoppingCart className="w-5 h-5 mr-2" />
             Cart ({cart.length})
@@ -335,7 +379,7 @@ if (loading) {
         </div>
 
         {/* Customer Selection */}
-        <div className="mb-4">
+        <div className="mb-4 flex-shrink-0">
           <Button
             variant="outline"
             onClick={() => setShowCustomerSearch(!showCustomerSearch)}
@@ -377,7 +421,7 @@ if (loading) {
         </div>
 
         {/* Cart Items */}
-        <div className="flex-1 overflow-auto space-y-3 mb-6">
+        <div className="flex-1 overflow-auto space-y-3 mb-6 min-h-0">
           {cart.length === 0 ? (
             <div className="text-center text-muted-foreground py-8">
               <ShoppingCart className="w-12 h-12 mx-auto mb-2 opacity-50" />
@@ -409,7 +453,7 @@ if (loading) {
                         </div>
                       ) : (
                         <div className="flex items-center space-x-1">
-                          <p className="text-xs text-muted-foreground">${item.price.toFixed(2)}</p>
+                          <p className="text-xs text-muted-foreground">PKR {item.price.toFixed(2)}</p>
                           <Button
                             size="sm"
                             variant="ghost"
@@ -456,7 +500,7 @@ if (loading) {
                     </Button>
                   </div>
                   <span className="font-semibold text-primary">
-                    ${(item.price * item.quantity).toFixed(2)}
+                    PKR {(item.price * item.quantity).toFixed(2)}
                   </span>
                 </div>
               </Card>
@@ -465,23 +509,19 @@ if (loading) {
         </div>
 
         {/* Totals */}
-        <div className="space-y-3 border-t pt-4">
+        <div className="space-y-3 border-t pt-4 flex-shrink-0">
           <div className="flex justify-between text-sm">
             <span>Subtotal:</span>
-            <span>${subtotal.toFixed(2)}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span>Tax (8%):</span>
-            <span>${tax.toFixed(2)}</span>
+            <span>PKR {subtotal.toFixed(2)}</span>
           </div>
           <div className="flex justify-between text-lg font-semibold">
             <span>Total:</span>
-            <span className="text-primary">${total.toFixed(2)}</span>
+            <span className="text-primary">PKR {total.toFixed(2)}</span>
           </div>
         </div>
 
         {/* Payment Buttons */}
-        <div className="space-y-2 mt-4">
+        <div className="space-y-2 mt-4 flex-shrink-0">
           <Button
             onClick={() => setShowBillPreview(true)}
             variant="outline"
@@ -491,6 +531,16 @@ if (loading) {
             <Receipt className="w-4 h-4 mr-2" />
             Preview Bill
           </Button>
+          {lastCompletedSale && (
+            <Button
+              onClick={() => setShowCompletedBill(true)}
+              variant="outline"
+              className="w-full"
+            >
+              <Receipt className="w-4 h-4 mr-2" />
+              Generate Last Bill
+            </Button>
+          )}
           <Button
             onClick={handleCheckout}
             className="w-full bg-primary hover:bg-primary-hover"
@@ -534,7 +584,7 @@ if (loading) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number *</Label>
+              <Label htmlFor="phone">Phone Number</Label>
               <Input
                 id="phone"
                 value={newCustomer.phone}
@@ -655,8 +705,8 @@ if (loading) {
                       <tr key={index} className="border-t">
                         <td className="p-3">{item.product.name}</td>
                         <td className="text-center p-3">{item.quantity}</td>
-                        <td className="text-right p-3">${item.price.toFixed(2)}</td>
-                        <td className="text-right p-3">${(item.price * item.quantity).toFixed(2)}</td>
+                        <td className="text-right p-3">PKR {item.price.toFixed(2)}</td>
+                        <td className="text-right p-3">PKR {(item.price * item.quantity).toFixed(2)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -668,15 +718,11 @@ if (loading) {
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span>Subtotal:</span>
-                <span>${subtotal.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span>Tax (8%):</span>
-                <span>${tax.toFixed(2)}</span>
+                <span>PKR {subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-lg font-semibold border-t pt-2">
                 <span>Total:</span>
-                <span>${total.toFixed(2)}</span>
+                <span>PKR {total.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span>Payment Method:</span>
@@ -751,10 +797,6 @@ if (loading) {
                           <span>Subtotal:</span>
                           <span>$${subtotal.toFixed(2)}</span>
                         </div>
-                        <div class="totals-row">
-                          <span>Tax (8%):</span>
-                          <span>$${tax.toFixed(2)}</span>
-                        </div>
                         <div class="totals-row total-line">
                           <span>TOTAL:</span>
                           <span>$${total.toFixed(2)}</span>
@@ -802,6 +844,365 @@ if (loading) {
         total={total}
         onSaleComplete={handleSaleComplete}
       />
+
+      {/* Completed Bill Dialog */}
+      {lastCompletedSale && (
+        <Dialog open={showCompletedBill} onOpenChange={setShowCompletedBill}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center">
+                <Receipt className="w-5 h-5 mr-2" />
+                Completed Transaction Bill
+              </DialogTitle>
+              <DialogDescription>
+                Bill for completed transaction - includes payment details
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-6">
+              {/* Header */}
+              <div className="text-center border-b pb-4">
+                <h2 className="text-2xl font-bold">Fashion Boutique</h2>
+                <p className="text-sm text-muted-foreground">Bill #: {lastCompletedSale.billNumber}</p>
+                <p className="text-sm text-muted-foreground">{lastCompletedSale.date} {lastCompletedSale.time}</p>
+                <div className="mt-2">
+                  {lastCompletedSale.remainingAmount > 0 ? (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                      Partially Paid
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      Paid in Full
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Customer Info */}
+              {lastCompletedSale.customer && (
+                <div className="space-y-2">
+                  <h3 className="font-semibold">Customer Information</h3>
+                  <div className="text-sm space-y-1">
+                    <p><span className="font-medium">Name:</span> {lastCompletedSale.customer.first_name} {lastCompletedSale.customer.last_name}</p>
+                    <p><span className="font-medium">Phone:</span> {lastCompletedSale.customer.phone}</p>
+                    {lastCompletedSale.customer.address && <p><span className="font-medium">Address:</span> {lastCompletedSale.customer.address}</p>}
+                    <p><span className="font-medium">Loyalty Points:</span> {lastCompletedSale.customer.loyalty_points}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Items */}
+              <div className="space-y-2">
+                <h3 className="font-semibold">Items</h3>
+                <div className="border rounded-lg overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted">
+                      <tr>
+                        <th className="text-left p-3">Item</th>
+                        <th className="text-center p-3">Qty</th>
+                        <th className="text-right p-3">Price</th>
+                        <th className="text-right p-3">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {lastCompletedSale.cart.map((item, index) => (
+                        <tr key={index} className="border-t">
+                          <td className="p-3">{item.product.name}</td>
+                          <td className="text-center p-3">{item.quantity}</td>
+                          <td className="text-right p-3">PKR {item.price.toFixed(2)}</td>
+                          <td className="text-right p-3">PKR {(item.price * item.quantity).toFixed(2)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Totals */}
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>Subtotal:</span>
+                  <span>PKR {lastCompletedSale.subtotal.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-lg font-semibold border-t pt-2">
+                  <span>Total:</span>
+                  <span>PKR {lastCompletedSale.total.toFixed(2)}</span>
+                </div>
+              </div>
+
+              {/* Payment Information */}
+              <div className="space-y-2 bg-muted/30 p-4 rounded-lg">
+                <h3 className="font-semibold">Payment Information</h3>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span>Payment Method:</span>
+                    <span className="capitalize">
+                      {lastCompletedSale.paymentMethod === 'credit_card' ? 'Credit Card' : 
+                       lastCompletedSale.paymentMethod === 'debit_card' ? 'Debit Card' : 
+                       lastCompletedSale.paymentMethod === 'mobile_payment' ? 'Mobile Payment' : 'Cash'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Amount Paid:</span>
+                    <span className="font-medium">PKR {lastCompletedSale.paidAmount.toFixed(2)}</span>
+                  </div>
+                  {lastCompletedSale.remainingAmount > 0 && (
+                    <div className="flex justify-between text-orange-600">
+                      <span>Remaining Balance:</span>
+                      <span className="font-medium">PKR {lastCompletedSale.remainingAmount.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {lastCompletedSale.paidAmount > lastCompletedSale.total && (
+                    <div className="flex justify-between text-green-600">
+                      <span>Change Given:</span>
+                      <span className="font-medium">PKR {(lastCompletedSale.paidAmount - lastCompletedSale.total).toFixed(2)}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex justify-end space-x-2 pt-4 border-t">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    // Generate and print the completed bill
+                    const printWindow = window.open('', '_blank');
+                    if (printWindow) {
+                      printWindow.document.write(`
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                          <title>Bill - ${lastCompletedSale.billNumber}</title>
+                          <style>
+                            @media print {
+                              @page { margin: 0.5in; }
+                            }
+                            body { 
+                              font-family: 'Courier New', monospace; 
+                              margin: 0;
+                              padding: 20px;
+                              line-height: 1.4;
+                              color: #000;
+                            }
+                            .header { 
+                              text-align: center; 
+                              border-bottom: 2px solid #000; 
+                              padding-bottom: 15px; 
+                              margin-bottom: 20px; 
+                            }
+                            .header h1 {
+                              margin: 0;
+                              font-size: 24px;
+                              font-weight: bold;
+                            }
+                            .bill-info {
+                              text-align: center;
+                              margin-bottom: 20px;
+                              font-size: 12px;
+                            }
+                            .customer-info { 
+                              margin-bottom: 20px;
+                              border-bottom: 1px dashed #000;
+                              padding-bottom: 15px;
+                            }
+                            .customer-info h3 {
+                              margin: 0 0 10px 0;
+                              font-size: 14px;
+                              font-weight: bold;
+                            }
+                            .items-table { 
+                              width: 100%; 
+                              border-collapse: collapse; 
+                              margin-bottom: 20px;
+                              border-bottom: 1px dashed #000;
+                            }
+                            .items-table th {
+                              border-bottom: 1px solid #000;
+                              padding: 8px 4px;
+                              text-align: left;
+                              font-weight: bold;
+                              font-size: 12px;
+                            }
+                            .items-table td {
+                              padding: 6px 4px;
+                              font-size: 11px;
+                              border-bottom: 1px dotted #ccc;
+                            }
+                            .items-table th:last-child,
+                            .items-table td:last-child {
+                              text-align: right;
+                            }
+                            .totals { 
+                              margin: 20px 0;
+                              font-size: 13px;
+                            }
+                            .totals-row {
+                              display: flex;
+                              justify-content: space-between;
+                              padding: 4px 0;
+                            }
+                            .total-line {
+                              border-top: 1px solid #000;
+                              margin-top: 8px;
+                              padding-top: 8px;
+                              font-weight: bold;
+                              font-size: 15px;
+                            }
+                            .payment-section {
+                              margin-top: 20px;
+                              padding: 15px;
+                              border: 2px solid #000;
+                              background-color: #f9f9f9;
+                            }
+                            .payment-section h3 {
+                              margin: 0 0 12px 0;
+                              font-size: 16px;
+                              text-align: center;
+                              font-weight: bold;
+                              text-transform: uppercase;
+                            }
+                            .payment-row {
+                              display: flex;
+                              justify-content: space-between;
+                              padding: 6px 0;
+                              font-size: 14px;
+                              font-weight: bold;
+                            }
+                            .payment-status {
+                              text-align: center;
+                              margin-top: 15px;
+                              padding: 8px;
+                              border: 1px solid #000;
+                              font-weight: bold;
+                              font-size: 14px;
+                              text-transform: uppercase;
+                            }
+                            .partial-payment {
+                              background-color: #fff3cd;
+                              color: #856404;
+                            }
+                            .full-payment {
+                              background-color: #d4edda;
+                              color: #155724;
+                            }
+                            .footer { 
+                              text-align: center; 
+                              margin-top: 30px; 
+                              font-size: 12px;
+                              border-top: 1px dashed #000;
+                              padding-top: 15px;
+                            }
+                            .thank-you {
+                              font-weight: bold;
+                              margin-bottom: 5px;
+                            }
+                          </style>
+                        </head>
+                        <body>
+                          <div class="header">
+                            <h1>Fashion Boutique</h1>
+                          </div>
+                          
+                          <div class="bill-info">
+                            <p><strong>Bill #:</strong> ${lastCompletedSale.billNumber}</p>
+                            <p><strong>Date:</strong> ${lastCompletedSale.date} ${lastCompletedSale.time}</p>
+                          </div>
+                          
+                          ${lastCompletedSale.customer ? `
+                          <div class="customer-info">
+                            <h3>Customer Information</h3>
+                            <p><strong>Name:</strong> ${lastCompletedSale.customer.first_name} ${lastCompletedSale.customer.last_name}</p>
+                            <p><strong>Phone:</strong> ${lastCompletedSale.customer.phone}</p>
+                            ${lastCompletedSale.customer.address ? `<p><strong>Address:</strong> ${lastCompletedSale.customer.address}</p>` : ''}
+                            <p><strong>Loyalty Points:</strong> ${lastCompletedSale.customer.loyalty_points}</p>
+                          </div>
+                          ` : ''}
+                          
+                          <table class="items-table">
+                            <thead>
+                              <tr>
+                                <th>Item</th>
+                                <th style="text-align: center;">Qty</th>
+                                <th style="text-align: right;">Price</th>
+                                <th style="text-align: right;">Total</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              ${lastCompletedSale.cart.map(item => `
+                                <tr>
+                                  <td>${item.product.name}</td>
+                                  <td style="text-align: center;">${item.quantity}</td>
+                                  <td style="text-align: right;">PKR ${item.price.toFixed(2)}</td>
+                                  <td style="text-align: right;">PKR ${(item.price * item.quantity).toFixed(2)}</td>
+                                </tr>
+                              `).join('')}
+                            </tbody>
+                          </table>
+                          
+                          <div class="totals">
+                            <div class="totals-row">
+                              <span>Subtotal:</span>
+                              <span>PKR ${lastCompletedSale.subtotal.toFixed(2)}</span>
+                            </div>
+                            <div class="totals-row total-line">
+                              <span>TOTAL AMOUNT:</span>
+                              <span>PKR ${lastCompletedSale.total.toFixed(2)}</span>
+                            </div>
+                          </div>
+
+                          <div class="payment-section">
+                            <h3>Payment Details</h3>
+                            <div class="payment-row">
+                              <span>Payment Method:</span>
+                              <span>${lastCompletedSale.paymentMethod === 'credit_card' ? 'Credit Card' : lastCompletedSale.paymentMethod === 'debit_card' ? 'Debit Card' : lastCompletedSale.paymentMethod === 'mobile_payment' ? 'Mobile Payment' : 'Cash'}</span>
+                            </div>
+                            <div class="payment-row">
+                              <span>Amount Paid:</span>
+                              <span>PKR ${lastCompletedSale.paidAmount.toFixed(2)}</span>
+                            </div>
+                            ${lastCompletedSale.remainingAmount > 0 ? `
+                            <div class="payment-row" style="color: #d63384;">
+                              <span>Remaining Balance:</span>
+                              <span>PKR ${lastCompletedSale.remainingAmount.toFixed(2)}</span>
+                            </div>
+                            ` : ''}
+                            ${lastCompletedSale.paidAmount > lastCompletedSale.total ? `
+                            <div class="payment-row" style="color: #198754;">
+                              <span>Change Due:</span>
+                              <span>PKR ${(lastCompletedSale.paidAmount - lastCompletedSale.total).toFixed(2)}</span>
+                            </div>
+                            ` : ''}
+                            
+                            <div class="payment-status ${lastCompletedSale.remainingAmount > 0 ? 'partial-payment' : 'full-payment'}">
+                              ${lastCompletedSale.remainingAmount > 0 ? 'PARTIAL PAYMENT - BALANCE DUE' : 'PAID IN FULL'}
+                            </div>
+                          </div>
+                          
+                          <div class="footer">
+                            <p class="thank-you">Thank you for shopping with us!</p>
+                            <p>Visit us again soon!</p>
+                            ${lastCompletedSale.remainingAmount > 0 ? `<p><strong>Please keep this receipt for balance due: PKR ${lastCompletedSale.remainingAmount.toFixed(2)}</strong></p>` : ''}
+                          </div>
+                        </body>
+                        </html>
+                      `);
+                      printWindow.document.close();
+                      printWindow.print();
+                    }
+                  }}
+                >
+                  <Receipt className="w-4 h-4 mr-2" />
+                  Print Bill
+                </Button>
+                <Button onClick={() => setShowCompletedBill(false)}>
+                  Close
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

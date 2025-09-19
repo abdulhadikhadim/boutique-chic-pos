@@ -220,10 +220,10 @@ export function ManagerDashboard() {
 
   const handleAddCustomer = async () => {
     try {
-      if (!newCustomer.first_name || !newCustomer.last_name || !newCustomer.phone) {
+      if (!newCustomer.first_name || !newCustomer.last_name) {
         toast({
           title: "Missing Information",
-          description: "Please fill in required fields (First Name, Last Name, Phone)",
+          description: "Please fill in required fields (First Name, Last Name)",
           variant: "destructive"
         });
         return;
@@ -231,6 +231,11 @@ export function ManagerDashboard() {
 
       const customerData = {
         ...newCustomer,
+        phone: newCustomer.phone || undefined, // Don't send empty string
+        email: newCustomer.email || undefined,
+        address: newCustomer.address || undefined,
+        gender: newCustomer.gender || undefined,
+        alternate_phone: newCustomer.alternate_phone || undefined,
         loyalty_points: 0,
         total_spent: 0,
         visits: 0
@@ -459,8 +464,9 @@ export function ManagerDashboard() {
 
       {/* Main Content */}
       <Tabs defaultValue="inventory" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="inventory">Inventory</TabsTrigger>
+          <TabsTrigger value="manage-inventory">Manage Inventory</TabsTrigger>
           <TabsTrigger value="sales">Sales</TabsTrigger>
           <TabsTrigger value="customers">Customers</TabsTrigger>
           <TabsTrigger value="reports">Reports</TabsTrigger>
@@ -1169,7 +1175,7 @@ export function ManagerDashboard() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number *</Label>
+              <Label htmlFor="phone">Phone Number</Label>
               <Input
                 id="phone"
                 value={newCustomer.phone}

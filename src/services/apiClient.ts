@@ -1,5 +1,5 @@
 // API configuration and base client
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = 'http://localhost:8001/api';
 
 class ApiClient {
   private baseURL: string;
@@ -246,7 +246,7 @@ export interface Customer {
   first_name: string;
   last_name: string;
   email?: string;
-  phone: string;
+  phone?: string;
   address?: string;
   gender?: 'male' | 'female' | 'other' | 'prefer_not_to_say';
   alternate_phone?: string;

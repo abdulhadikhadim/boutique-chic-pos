@@ -27,6 +27,7 @@ interface BillDialogProps {
     paidAmount: number;
     remainingAmount: number;
   }) => void;
+  mode?: 'payment' | 'bill_only'; // New prop to control mode
 }
 
 export function BillDialog({ 
@@ -37,7 +38,8 @@ export function BillDialog({
   subtotal, 
   tax, 
   total, 
-  onSaleComplete 
+  onSaleComplete,
+  mode = 'payment' // Default to payment mode
 }: BillDialogProps) {
   const [paymentAmount, setPaymentAmount] = useState(total.toString());
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'credit_card' | 'debit_card' | 'mobile_payment'>('cash');
@@ -140,6 +142,10 @@ export function BillDialog({
   const handlePrint = () => {
     const printWindow = window.open('', '_blank');
     if (printWindow) {
+      // Determine if this is a bill-only generation or completed payment
+      const isPaidBill = mode === 'payment' && saleCompleted;
+      const isUnpaidBill = mode === 'bill_only';
+      
       printWindow.document.write(`
         <!DOCTYPE html>
         <html>
@@ -224,7 +230,7 @@ export function BillDialog({
               margin-top: 20px;
               padding: 15px;
               border: 2px solid #000;
-              background-color: #f9f9f9;
+              background-color: ${isUnpaidBill ? '#fff8dc' : '#f9f9f9'};
             }
             .payment-section h3 {
               margin: 0 0 12px 0;
@@ -232,6 +238,7 @@ export function BillDialog({
               text-align: center;
               font-weight: bold;
               text-transform: uppercase;
+              color: ${isUnpaidBill ? '#d63384' : '#000'};
             }
             .payment-row {
               display: flex;
@@ -244,7 +251,7 @@ export function BillDialog({
               text-align: center;
               margin-top: 15px;
               padding: 8px;
-              border: 1px solid #000;
+              border: ${isUnpaidBill ? '2px dashed #d63384' : '1px solid #000'};
               font-weight: bold;
               font-size: 14px;
               text-transform: uppercase;
@@ -256,6 +263,10 @@ export function BillDialog({
             .full-payment {
               background-color: #d4edda;
               color: #155724;
+            }
+            .unpaid {
+              background-color: #fff3cd;
+              color: #856404;
             }
             .footer { 
               text-align: center; 
@@ -323,37 +334,54 @@ export function BillDialog({
           </div>
 
           <div class="payment-section">
-            <h3>Payment Details</h3>
-            <div class="payment-row">
-              <span>Payment Method:</span>
-              <span>${paymentMethod === 'credit_card' ? 'Credit Card' : paymentMethod === 'debit_card' ? 'Debit Card' : paymentMethod === 'mobile_payment' ? 'Mobile Payment' : 'Cash'}</span>
-            </div>
-            <div class="payment-row">
-              <span>Amount Paid:</span>
-              <span>PKR ${paidAmount.toFixed(2)}</span>
-            </div>
-            ${remainingAmount > 0 ? `
-            <div class="payment-row" style="color: #d63384;">
-              <span>Remaining Balance:</span>
-              <span>PKR ${remainingAmount.toFixed(2)}</span>
-            </div>
-            ` : ''}
-            ${changeAmount > 0 ? `
-            <div class="payment-row" style="color: #198754;">
-              <span>Change Due:</span>
-              <span>PKR ${changeAmount.toFixed(2)}</span>
-            </div>
-            ` : ''}
-            
-            <div class="payment-status ${remainingAmount > 0 ? 'partial-payment' : 'full-payment'}">
-              ${remainingAmount > 0 ? 'PARTIAL PAYMENT - BALANCE DUE' : 'PAID IN FULL'}
-            </div>
+            ${isUnpaidBill ? `
+              <h3>⚠️ PAYMENT PENDING ⚠️</h3>
+              <div class="payment-status unpaid">
+                BILL GENERATED - PAYMENT REQUIRED
+              </div>
+              <div style="text-align: center; margin-top: 15px; font-size: 12px;">
+                <p>Total Amount Due: <strong>PKR ${total.toFixed(2)}</strong></p>
+                <p>Payment Method: <strong>To be collected</strong></p>
+                <p>Status: <strong>UNPAID</strong></p>
+              </div>
+            ` : `
+              <h3>Payment Details</h3>
+              <div class="payment-row">
+                <span>Payment Method:</span>
+                <span>${paymentMethod === 'credit_card' ? 'Credit Card' : paymentMethod === 'debit_card' ? 'Debit Card' : paymentMethod === 'mobile_payment' ? 'Mobile Payment' : 'Cash'}</span>
+              </div>
+              <div class="payment-row">
+                <span>Amount Paid:</span>
+                <span>PKR ${paidAmount.toFixed(2)}</span>
+              </div>
+              ${remainingAmount > 0 ? `
+              <div class="payment-row" style="color: #d63384;">
+                <span>Remaining Balance:</span>
+                <span>PKR ${remainingAmount.toFixed(2)}</span>
+              </div>
+              ` : ''}
+              ${changeAmount > 0 ? `
+              <div class="payment-row" style="color: #198754;">
+                <span>Change Due:</span>
+                <span>PKR ${changeAmount.toFixed(2)}</span>
+              </div>
+              ` : ''}
+              
+              <div class="payment-status ${remainingAmount > 0 ? 'partial-payment' : 'full-payment'}">
+                ${remainingAmount > 0 ? 'PARTIAL PAYMENT - BALANCE DUE' : 'PAID IN FULL'}
+              </div>
+            `}
           </div>
           
           <div class="footer">
             <p class="thank-you">Thank you for shopping with us!</p>
-            <p>Visit us again soon!</p>
-            ${remainingAmount > 0 ? `<p><strong>Please keep this receipt for balance due: PKR ${remainingAmount.toFixed(2)}</strong></p>` : ''}
+            ${isUnpaidBill ? `
+              <p>Please make payment to complete your purchase.</p>
+              <p><strong>This bill is valid for payment collection.</strong></p>
+            ` : `
+              <p>Visit us again soon!</p>
+              ${remainingAmount > 0 ? `<p><strong>Please keep this receipt for balance due: PKR ${remainingAmount.toFixed(2)}</strong></p>` : ''}
+            `}
           </div>
         </body>
         </html>
@@ -435,10 +463,13 @@ Visit us again soon!
           <DialogHeader>
             <DialogTitle className="flex items-center">
               <Receipt className="w-5 h-5 mr-2" />
-              Process Payment
+              {mode === 'bill_only' ? 'Generate Bill' : 'Process Payment'}
             </DialogTitle>
             <DialogDescription>
-              Complete the payment process for this order
+              {mode === 'bill_only' 
+                ? 'Generate and print bill for this order. Payment can be collected later.'
+                : 'Complete the payment process for this order'
+              }
             </DialogDescription>
           </DialogHeader>
           
@@ -502,9 +533,10 @@ Visit us again soon!
               </div>
             </div>
 
-            {/* Payment Section */}
-            <div className="space-y-4 border rounded-lg p-4">
-              <h3 className="font-semibold">Payment Details</h3>
+            {/* Payment Section - Only show for payment mode */}
+            {mode === 'payment' && (
+              <div className="space-y-4 border rounded-lg p-4">
+                <h3 className="font-semibold">Payment Details</h3>
               
               {/* Payment Method */}
               <div className="space-y-2">
@@ -607,19 +639,44 @@ Visit us again soon!
                 </div>
               )}
             </div>
+            )}
+
+            {/* Bill Only Mode - Show special message */}
+            {mode === 'bill_only' && (
+              <div className="space-y-2 bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                  <h3 className="font-semibold text-yellow-800">Bill Generation Mode</h3>
+                </div>
+                <p className="text-sm text-yellow-700">
+                  This will generate a bill for the customer without processing payment. 
+                  Payment can be collected later when the customer is ready.
+                </p>
+                <div className="text-sm text-yellow-800 font-medium">
+                  Total Amount Due: PKR {total.toFixed(2)}
+                </div>
+              </div>
+            )}
 
             {/* Actions */}
             <div className="flex justify-end space-x-2 pt-4 border-t">
               <Button variant="outline" onClick={() => handleDialogClose(false)}>
                 Cancel
               </Button>
-              <Button 
-                onClick={handleProcessPayment}
-                disabled={isProcessing || paidAmount <= 0}
-                className="min-w-32"
-              >
-                {isProcessing ? 'Processing...' : remainingAmount > 0 ? 'Partial Payment' : 'Complete Payment'}
-              </Button>
+              {mode === 'bill_only' ? (
+                <Button onClick={handlePrint}>
+                  <Receipt className="w-4 h-4 mr-2" />
+                  Generate & Print Bill
+                </Button>
+              ) : (
+                <Button 
+                  onClick={handleProcessPayment}
+                  disabled={isProcessing || paidAmount <= 0}
+                  className="min-w-32"
+                >
+                  {isProcessing ? 'Processing...' : remainingAmount > 0 ? 'Partial Payment' : 'Complete Payment'}
+                </Button>
+              )}
             </div>
           </div>
         </DialogContent>

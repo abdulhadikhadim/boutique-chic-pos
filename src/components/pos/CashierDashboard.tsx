@@ -56,6 +56,7 @@ export function CashierDashboard() {
   const [showBillPreview, setShowBillPreview] = useState(false);
   const [editingPrice, setEditingPrice] = useState<{index: number, price: string} | null>(null);
   const [showBill, setShowBill] = useState(false);
+  const [billMode, setBillMode] = useState<'payment' | 'bill_only'>('payment');
   const [lastCompletedSale, setLastCompletedSale] = useState<{
     cart: CartItem[];
     customer: Customer | null;
@@ -273,6 +274,7 @@ export function CashierDashboard() {
     }
 
     // Show the bill dialog for payment processing
+    setBillMode('payment');
     setShowBill(true);
   };
 
@@ -541,14 +543,31 @@ if (loading) {
               Generate Last Bill
             </Button>
           )}
-          <Button
-            onClick={handleCheckout}
-            className="w-full bg-primary hover:bg-primary-hover"
-            disabled={cart.length === 0}
-          >
-            <CreditCard className="w-4 h-4 mr-2" />
-            Proceed to Payment
-          </Button>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              onClick={() => {
+                setBillMode('bill_only');
+                setShowBill(true);
+              }}
+              variant="outline"
+              className="w-full"
+              disabled={cart.length === 0}
+            >
+              <Receipt className="w-4 h-4 mr-2" />
+              Generate Bill
+            </Button>
+            <Button
+              onClick={() => {
+                setBillMode('payment');
+                handleCheckout();
+              }}
+              className="w-full bg-primary hover:bg-primary-hover"
+              disabled={cart.length === 0}
+            >
+              <CreditCard className="w-4 h-4 mr-2" />
+              Complete Payment
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -843,6 +862,7 @@ if (loading) {
         tax={tax}
         total={total}
         onSaleComplete={handleSaleComplete}
+        mode={billMode}
       />
 
       {/* Completed Bill Dialog */}

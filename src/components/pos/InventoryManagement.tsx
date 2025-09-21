@@ -88,7 +88,7 @@ export function InventoryManagement({ products: propProducts, onUpdateProducts }
     }
   };
 
-  const categories = ['Dresses', 'Tops', 'Bottoms', 'Accessories', 'Shoes', 'Outerwear'];
+  const categories = ['Saree', 'Suit', 'Frock', 'Dupatta', 'Laces', 'Only Fabric'];
 
   const filteredProducts = products.filter(product =>
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||

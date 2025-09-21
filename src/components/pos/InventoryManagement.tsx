@@ -113,11 +113,11 @@ export function InventoryManagement({ products: propProducts, onUpdateProducts }
       return;
     }
 
-    // Validate file size (5MB max)
-    if (file.size > 5 * 1024 * 1024) {
+    // Validate file size (10MB max)
+    if (file.size > 10 * 1024 * 1024) {
       toast({
         title: "File Too Large",
-        description: "Please select an image smaller than 5MB",
+        description: "Please select an image smaller than 10MB",
         variant: "destructive"
       });
       return;
@@ -797,7 +797,7 @@ export function InventoryManagement({ products: propProducts, onUpdateProducts }
                 />
               </div>
               <p className="text-xs text-muted-foreground">
-                Supported formats: JPG, PNG, GIF (max 5MB)
+                Supported formats: JPG, PNG, GIF (max 10MB)
               </p>
             </div>
 

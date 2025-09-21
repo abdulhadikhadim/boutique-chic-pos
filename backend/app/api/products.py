@@ -237,10 +237,10 @@ async def upload_product_image(file: UploadFile = File(...)):
         if not file.content_type or not file.content_type.startswith('image/'):
             raise HTTPException(status_code=400, detail="File must be an image")
         
-        # Check file size (limit to 5MB)
+        # Check file size (limit to 10MB)
         contents = await file.read()
-        if len(contents) > 5 * 1024 * 1024:  # 5MB
-            raise HTTPException(status_code=400, detail="File size too large. Maximum 5MB allowed.")
+        if len(contents) > 10 * 1024 * 1024:  # 10MB
+            raise HTTPException(status_code=400, detail="File size too large. Maximum 10MB allowed.")
         
         # Convert to base64
         base64_image = base64.b64encode(contents).decode('utf-8')

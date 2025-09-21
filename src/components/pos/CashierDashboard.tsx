@@ -341,8 +341,22 @@ if (loading) {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pb-6">
           {filteredProducts.map((product) => (
             <Card key={product.id} className="p-4 hover:shadow-elegant transition-shadow cursor-pointer border-0 bg-card">
-              <div className="aspect-square bg-muted rounded-lg mb-3 flex items-center justify-center">
-                <Package className="w-12 h-12 text-muted-foreground" />
+              <div className="aspect-square bg-muted rounded-lg mb-3 flex items-center justify-center overflow-hidden">
+                {product.image && product.image !== '/api/placeholder/300/400' ? (
+                  <img
+                    src={product.image}
+                    alt={product.name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      // Fallback to package icon if image fails to load
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      target.parentElement!.innerHTML = '<div class="w-12 h-12 text-muted-foreground"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg></div>';
+                    }}
+                  />
+                ) : (
+                  <Package className="w-12 h-12 text-muted-foreground" />
+                )}
               </div>
               
               <div className="space-y-2">

@@ -17,7 +17,7 @@ class ProductBase(BaseModel):
     stock: int = Field(..., ge=0)
     sku: str = Field(..., min_length=1, max_length=50)
     description: Optional[str] = Field(None, max_length=1000)
-    image: Optional[str] = Field(None, max_length=500)
+    image: Optional[str] = Field(None, max_length=100000)  # Increased to support base64 encoded images
     variants: Optional[List[ProductVariant]] = []
 
     @field_validator('variants', mode='before')
@@ -64,7 +64,7 @@ class ProductUpdate(BaseModel):
     stock: Optional[int] = Field(None, ge=0)
     sku: Optional[str] = Field(None, min_length=1, max_length=50)
     description: Optional[str] = Field(None, max_length=1000)
-    image: Optional[str] = Field(None, max_length=500)
+    image: Optional[str] = Field(None, max_length=100000)  # Increased to support base64 encoded images
     variants: Optional[List[ProductVariant]] = None
 
     @field_validator('variants', mode='before')

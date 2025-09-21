@@ -33,6 +33,7 @@ interface NewProductForm {
   stock: string;
   sku: string;
   description: string;
+  image: string;
   variants: ProductVariant[];
 }
 
@@ -55,8 +56,10 @@ export function InventoryManagement({ products: propProducts, onUpdateProducts }
     stock: '',
     sku: '',
     description: '',
+    image: '',
     variants: []
   });
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   // Load products from API
   useEffect(() => {
@@ -96,6 +99,55 @@ export function InventoryManagement({ products: propProducts, onUpdateProducts }
   const lowStockProducts = products.filter(p => p.stock < 10);
   const outOfStockProducts = products.filter(p => p.stock === 0);
 
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid File Type",
+        description: "Please select an image file",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File Too Large",
+        description: "Please select an image smaller than 5MB",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      setUploadingImage(true);
+      const response = await apiClient.uploadProductImage(file);
+      
+      setNewProduct(prev => ({
+        ...prev,
+        image: response.data.image
+      }));
+      
+      toast({
+        title: "Image Uploaded",
+        description: "Product image uploaded successfully",
+      });
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast({
+        title: "Upload Failed",
+        description: "Failed to upload image. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   const handleAddProduct = async () => {
     if (!newProduct.name || !newProduct.price || !newProduct.cost || !newProduct.stock || !newProduct.sku) {
       toast({
@@ -126,7 +178,7 @@ export function InventoryManagement({ products: propProducts, onUpdateProducts }
         stock: parseInt(newProduct.stock),
         sku: newProduct.sku,
         description: newProduct.description || '',
-        image: '/api/placeholder/300/400',
+        image: newProduct.image || '/api/placeholder/300/400',
         variants: Array.isArray(newProduct.variants) ? newProduct.variants : []
       };
 
@@ -150,6 +202,7 @@ export function InventoryManagement({ products: propProducts, onUpdateProducts }
         stock: '',
         sku: '',
         description: '',
+        image: '',
         variants: []
       });
       
@@ -182,6 +235,7 @@ export function InventoryManagement({ products: propProducts, onUpdateProducts }
       stock: product.stock.toString(),
       sku: product.sku,
       description: product.description,
+      image: product.image || '',
       variants: product.variants
     });
     setShowAddForm(true);
@@ -213,7 +267,7 @@ export function InventoryManagement({ products: propProducts, onUpdateProducts }
         stock: parseInt(newProduct.stock),
         sku: newProduct.sku,
         description: newProduct.description || '',
-        image: editingProduct.image,
+        image: newProduct.image || editingProduct.image,
         variants: Array.isArray(newProduct.variants) ? newProduct.variants : []
       };
 
@@ -238,8 +292,10 @@ export function InventoryManagement({ products: propProducts, onUpdateProducts }
         stock: '',
         sku: '',
         description: '',
+        image: '',
         variants: []
       });
+      
       setShowAddForm(false);
       
       toast({
@@ -248,9 +304,12 @@ export function InventoryManagement({ products: propProducts, onUpdateProducts }
       });
     } catch (error) {
       console.error('Error updating product:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update product. Please try again.';
       toast({
         title: "Error Updating Product",
-        description: "Failed to update product. Please try again.",
+        description: errorMessage.includes('SKU already exists') ? 
+          'Another product with this SKU already exists. Please use a different SKU.' : 
+          errorMessage,
         variant: "destructive"
       });
     }
@@ -656,6 +715,72 @@ export function InventoryManagement({ products: propProducts, onUpdateProducts }
                 placeholder="Enter product description"
                 rows={3}
               />
+            </div>
+
+            {/* Image Upload Section */}
+            <div className="space-y-2">
+              <Label htmlFor="product-image">Product Image</Label>
+              <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6">
+                {newProduct.image ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-center">
+                      <img
+                        src={newProduct.image}
+                        alt="Product preview"
+                        className="max-w-32 max-h-32 object-cover rounded-lg border"
+                      />
+                    </div>
+                    <div className="flex justify-center space-x-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => document.getElementById('image-upload')?.click()}
+                        disabled={uploadingImage}
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        Change Image
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setNewProduct({...newProduct, image: ''})}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center">
+                    <Package className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
+                    <div className="space-y-2">
+                      <p className="text-sm text-muted-foreground">
+                        {uploadingImage ? 'Uploading image...' : 'No image uploaded'}
+                      </p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => document.getElementById('image-upload')?.click()}
+                        disabled={uploadingImage}
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        {uploadingImage ? 'Uploading...' : 'Upload Image'}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                <input
+                  id="image-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Supported formats: JPG, PNG, GIF (max 5MB)
+              </p>
             </div>
 
             <div className="flex justify-end space-x-2">

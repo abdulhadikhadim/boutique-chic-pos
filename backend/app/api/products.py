@@ -1,11 +1,13 @@
 from typing import List, Optional
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends, Query, File, UploadFile
 from app.models.product import (
     Product, ProductCreate, ProductUpdate, ProductResponse, 
     ProductListResponse
 )
 from app.database.csv_handler import ProductCSVHandler
 import logging
+import base64
+import uuid
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -226,3 +228,38 @@ async def get_out_of_stock_products():
     except Exception as e:
         logger.error(f"Error retrieving out of stock products: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error retrieving out of stock products: {str(e)}")
+
+@router.post("/upload-image/")
+async def upload_product_image(file: UploadFile = File(...)):
+    """Upload product image and return base64 encoded string"""
+    try:
+        # Check file type
+        if not file.content_type or not file.content_type.startswith('image/'):
+            raise HTTPException(status_code=400, detail="File must be an image")
+        
+        # Check file size (limit to 5MB)
+        contents = await file.read()
+        if len(contents) > 5 * 1024 * 1024:  # 5MB
+            raise HTTPException(status_code=400, detail="File size too large. Maximum 5MB allowed.")
+        
+        # Convert to base64
+        base64_image = base64.b64encode(contents).decode('utf-8')
+        
+        # Create data URL with proper MIME type
+        data_url = f"data:{file.content_type};base64,{base64_image}"
+        
+        return {
+            "success": True,
+            "message": "Image uploaded successfully",
+            "data": {
+                "image": data_url,
+                "filename": file.filename,
+                "content_type": file.content_type,
+                "size": len(contents)
+            }
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error uploading image: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error uploading image: {str(e)}")

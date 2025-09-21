@@ -25,9 +25,22 @@ class ApiClient {
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
     const config: RequestInit = {
-      headers: this.getHeaders(),
       ...options,
     };
+
+    // Only add JSON headers if we're not sending FormData
+    if (!(options.body instanceof FormData)) {
+      config.headers = {
+        ...this.getHeaders(),
+        ...options.headers,
+      };
+    } else {
+      // For FormData, only add auth header, let browser set Content-Type
+      config.headers = {
+        'Authorization': this.token ? `Bearer ${this.token}` : '',
+        ...options.headers,
+      };
+    }
 
     try {
       const response = await fetch(url, config);
@@ -104,6 +117,17 @@ class ApiClient {
   async deleteProduct(id: string): Promise<any> {
     return this.request(`/products/${id}`, {
       method: 'DELETE',
+    });
+  }
+
+  async uploadProductImage(file: File): Promise<any> {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    return this.request('/products/upload-image/', {
+      method: 'POST',
+      body: formData,
+      headers: {} // Let browser set content-type for FormData
     });
   }
 

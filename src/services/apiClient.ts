@@ -46,8 +46,38 @@ class ApiClient {
       const response = await fetch(url, config);
       
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        
+        try {
+          const errorData = await response.json();
+          
+          if (errorData.detail) {
+            // FastAPI validation error format
+            if (Array.isArray(errorData.detail)) {
+              // Pydantic validation errors
+              const validationErrors = errorData.detail.map((err: any) => {
+                if (err.loc && err.msg) {
+                  return `${err.loc.join('.')}: ${err.msg}`;
+                }
+                return err.msg || JSON.stringify(err);
+              }).join(', ');
+              errorMessage = `Validation error: ${validationErrors}`;
+            } else if (typeof errorData.detail === 'string') {
+              errorMessage = errorData.detail;
+            } else {
+              errorMessage = JSON.stringify(errorData.detail);
+            }
+          } else if (errorData.message) {
+            errorMessage = errorData.message;
+          } else {
+            errorMessage = JSON.stringify(errorData);
+          }
+        } catch (jsonError) {
+          // If error response is not JSON, use the status text
+          errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        }
+        
+        throw new Error(errorMessage);
       }
 
       return await response.json();

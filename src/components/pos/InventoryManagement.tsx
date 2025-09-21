@@ -215,11 +215,20 @@ export function InventoryManagement({ products: propProducts, onUpdateProducts }
     } catch (error) {
       console.error('Error adding product:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to add product. Please try again.';
+      
+      // Handle specific error cases
+      let displayMessage = errorMessage;
+      if (errorMessage.includes('SKU already exists')) {
+        displayMessage = 'A product with this SKU already exists. Please use a different SKU.';
+      } else if (errorMessage.includes('Validation error')) {
+        displayMessage = `Validation failed: ${errorMessage.replace('Validation error: ', '')}`;
+      } else if (errorMessage.includes('HTTP 422')) {
+        displayMessage = 'Please check all required fields are filled correctly.';
+      }
+      
       toast({
         title: "Error Adding Product",
-        description: errorMessage.includes('SKU already exists') ? 
-          'A product with this SKU already exists. Please use a different SKU.' : 
-          errorMessage,
+        description: displayMessage,
         variant: "destructive"
       });
     }
@@ -305,11 +314,20 @@ export function InventoryManagement({ products: propProducts, onUpdateProducts }
     } catch (error) {
       console.error('Error updating product:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to update product. Please try again.';
+      
+      // Handle specific error cases
+      let displayMessage = errorMessage;
+      if (errorMessage.includes('SKU already exists')) {
+        displayMessage = 'Another product with this SKU already exists. Please use a different SKU.';
+      } else if (errorMessage.includes('Validation error')) {
+        displayMessage = `Validation failed: ${errorMessage.replace('Validation error: ', '')}`;
+      } else if (errorMessage.includes('HTTP 422')) {
+        displayMessage = 'Please check all required fields are filled correctly.';
+      }
+      
       toast({
         title: "Error Updating Product",
-        description: errorMessage.includes('SKU already exists') ? 
-          'Another product with this SKU already exists. Please use a different SKU.' : 
-          errorMessage,
+        description: displayMessage,
         variant: "destructive"
       });
     }
